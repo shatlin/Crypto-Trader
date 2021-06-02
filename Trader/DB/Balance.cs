@@ -9,6 +9,8 @@ namespace BinanceExchange.API.Models.Response
  
     public class Balance 
     {
+
+
         public int Id { get; set; }
         public string Asset { get; set; }
         public decimal Free { get; set; }
