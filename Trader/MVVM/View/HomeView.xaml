@@ -1,0 +1,100 @@
+﻿<UserControl x:Class="Trader.MVVM.View.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Trader.MVVM.View"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="45"/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            
+        </Grid.ColumnDefinitions>
+        <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins"
+           Grid.Column="0" Grid.Row="0" Click="btnTrade_Click"     />
+
+    </Grid>
+    <!--<StackPanel>
+        <TextBlock Text="Discover" Foreground="White" FontSize="28"
+                   HorizontalAlignment="Left" Margin="0,0,0,20"></TextBlock>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Border Width="400" Height="200">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,2">
+                        <GradientStop Color="#5bc3ff" Offset="0.0"/>
+                        <GradientStop Color="#3aa0ff" Offset="1"/>
+
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Clip>
+                    <RectangleGeometry RadiusX="10" RadiusY="10" Rect="0,0,400,200">
+
+                    </RectangleGeometry>
+                </Border.Clip>
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="World Leader&#x0a;in global Finance" Foreground="White"
+                                   FontSize="28" Margin="20,10,0,0"></TextBlock>
+                        <TextBlock Text="Get Started Today" Foreground="White"
+                                   FontSize="18" Margin="20,10,0,0"></TextBlock>
+                    </StackPanel>
+                    <Image Width="614" Height="305" Source="/Images/2.png" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="41,-56,0,0" RenderTransformOrigin="0.5,0.5" >
+                        <Image.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform/>
+                                <SkewTransform/>
+                                <RotateTransform Angle="-0.102"/>
+                                <TranslateTransform/>
+                            </TransformGroup>
+                        </Image.RenderTransform>
+
+                    </Image>
+                   
+
+                </Grid>
+            </Border>
+
+            <Border Width="200"
+                    Height="200"
+                    CornerRadius="10" Margin="45,0,0,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,2">
+                        <GradientStop Color="#ffc554" Offset="0.0"/>
+                        <GradientStop Color="#ffb73a" Offset="1"/>
+
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Center" Margin="0,100,0,0" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" />
+            </Border>
+        </StackPanel>
+
+        
+        --><!--<StackPanel>
+            <TextBlock Text="Most Watched" Foreground="White" HorizontalAlignment="Left"
+                                   FontSize="20" Margin="0,0,0,10"></TextBlock>
+
+            <StackPanel Orientation="Horizontal">
+                <StackPanel.Resources>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="Margin" Value="15,0,0,0">
+
+                        </Setter>
+                    </Style>
+                </StackPanel.Resources>
+                <Border Width="150" Height="150" Background="#844eff" CornerRadius="10"></Border>
+                <Border Width="150" Height="150" Background="#4e99ff" CornerRadius="10"></Border>
+                <Border Width="150" Height="150" Background="#4eff91" CornerRadius="10"></Border>
+                <Border Width="150" Height="150" Background="#ecff4e" CornerRadius="10"></Border>
+            </StackPanel>
+        </StackPanel>--><!--
+    </StackPanel>-->
+    
+    
+</UserControl>
