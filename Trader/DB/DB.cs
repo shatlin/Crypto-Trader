@@ -13,7 +13,6 @@ namespace Trader.Models
     public class DB: DbContext
     {
 
-       
         public DB()
         {
             Database.EnsureCreated();
@@ -28,6 +27,8 @@ namespace Trader.Models
         public DbSet<MyTrade> MyTrade { get; set; }
         public DbSet<MyTradeFavouredCoins> MyTradeFavouredCoins { get; set; }
         public DbSet<Counter> Counter { get; set; }
+        public DbSet<TradeBot> TradeBot { get; set; }
+        public DbSet<TradeBotHistory> TradeBotHistory { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -47,8 +48,9 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
             modelBuilder.ApplyConfiguration(new DailyCandleConfiguration());
+            modelBuilder.ApplyConfiguration(new TradeBotConfiguration());
+            modelBuilder.ApplyConfiguration(new TradeBotHistoryConfiguration());
         }
-
     }
 
    

@@ -13,6 +13,8 @@ namespace BinanceExchange.API.Models.Response
         [DataMember(Order = 1)]
         public int Id { get; set; }
 
+         
+
         [DataMember(Order = 1)]
         public string Pair { get; set; }
 

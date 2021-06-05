@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210605110026_m15")]
+    partial class m15
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -288,7 +290,7 @@ namespace Trader.Migrations
                     b.Property<DateTime?>("BuyTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("BuyWhenValuePercentageIsBelow")
+                    b.Property<decimal?>("BuyWhenGoneDownByPercentFromDayHigh")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
@@ -312,9 +314,6 @@ namespace Trader.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("OriginalAllocatedValue")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -329,7 +328,7 @@ namespace Trader.Migrations
                     b.Property<DateTime?>("SellTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("SellWhenProfitPercentageIsAbove")
+                    b.Property<decimal?>("SellWhenProfitPercentageIs")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
@@ -364,29 +363,25 @@ namespace Trader.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("BuyPricePerCoin")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("BuyTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("BuyWhenValuePercentageIsBelow")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                    b.Property<decimal?>("BuyWhenGoneDownByPercentFromDayHigh")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("CreatedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("CurrentPricePerCoin")
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("DayHigh")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("DayLow")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActivelyTrading")
                         .HasColumnType("bit");
@@ -394,38 +389,29 @@ namespace Trader.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("OriginalAllocatedValue")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Pair")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("QuantityBought")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("SellTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("SellWhenProfitPercentageIsAbove")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                    b.Property<decimal?>("SellWhenProfitPercentageIs")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("TotalBuyCost")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("TotalCurrentProft")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("TotalCurrentValue")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");

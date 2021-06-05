@@ -43,7 +43,6 @@ namespace Trader.MVVM.View
         int intervalminutes = 15;
         double hourDifference = 2;
 
-
         DateTime referenceStartTime = DateTime.Today;
 
         public HomeView()
@@ -53,8 +52,9 @@ namespace Trader.MVVM.View
             Startup();
         }
 
-        private async void Startup()
+        private void Startup()
         {
+#if !DEBUG
 
             CandleDailyDataRetrieverTimer = new DispatcherTimer();
             CandleDailyDataRetrieverTimer.Tick += new EventHandler(CandleDailyDataRetrieverTimer_Tick);
@@ -65,6 +65,8 @@ namespace Trader.MVVM.View
             CandleDataRetrieverTimer.Tick += new EventHandler(CandleDataRetrieverTimer_Tick);
             CandleDataRetrieverTimer.Interval = new TimeSpan(0, intervalminutes, 0);
             CandleDataRetrieverTimer.Start();
+#endif
+
 
             TraderTimer = new DispatcherTimer();
             TraderTimer.Tick += new EventHandler(TraderTimer_Tick);
@@ -128,7 +130,7 @@ namespace Trader.MVVM.View
             {
 
                 await BalanceDB.Database.ExecuteSqlRawAsync("TRUNCATE TABLE Balance");
-                var accinfo = await client.GetAccountInformation();
+                AccountInformationResponse accinfo = await client.GetAccountInformation();
                 var trades = await BalanceDB.MyTrade.ToListAsync();
 
                 foreach (var asset in accinfo.Balances)
@@ -316,7 +318,6 @@ namespace Trader.MVVM.View
 
         private async void CandleDataRetrieverTimer_Tick(object sender, EventArgs e)
         {
-
             await GetCandles();
         }
 
@@ -428,7 +429,6 @@ namespace Trader.MVVM.View
             logger.Info("Getting Candle Completed at " + DateTime.Now);
         }
 
-
         private async Task GetCandlesOnceaDay()
         {
             logger.Info("Getting Daily Candle Started at " + DateTime.Now);
@@ -525,36 +525,67 @@ namespace Trader.MVVM.View
             List<MyTradeFavouredCoins> myTradeFavouredCoins = await TradeDB.MyTradeFavouredCoins.OrderBy(x => x.PreferenceOrder).AsNoTracking().ToListAsync();
             await GetCandles();
             List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet == (counter.CandleCurrentSet - 1)).ToListAsync();
+
+            int currentCandleSet = (counter.CandleCurrentSet - 1);
+            int refenceCandleCount = currentCandleSet - 12;
+
+            List<Candle> ReferenceCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet >= refenceCandleCount && x.DataSet < currentCandleSet).ToListAsync();
+
+
             List<SymbolPriceResponse> prices = await client.GetAllPrices();
             List<Balance> currentBalance = await UpdateBalance(prices);
 
             foreach (var myfavcoin in myTradeFavouredCoins)
             {
-                var myfavcoinCandle = latestCandles.Where(x => x.Symbol == myfavcoin.Pair).FirstOrDefault();
-                if (myfavcoinCandle == null)
+                var myfavcoinCandleList = latestCandles.Where(x => x.Symbol == myfavcoin.Pair + "USDT" || x.Symbol == myfavcoin.Pair + "BUSD" || x.Symbol == myfavcoin.Pair + "USDC");
+
+                if (myfavcoinCandleList == null)
                 {
                     continue;
                 }
 
                 #region signalIndicators
-               
+
                 SignalIndicator signalIndicator = new SignalIndicator();
-                signalIndicator.Symbol = myfavcoinCandle.Symbol;
-                signalIndicator.CurrentPrice = myfavcoinCandle.CurrentPrice;
-                signalIndicator.DayHighPrice = myfavcoinCandle.DayHighPrice;
-                signalIndicator.DayLowPrice = myfavcoinCandle.DayLowPrice;
-                signalIndicator.DayVolume = myfavcoinCandle.DayVolume;
-                signalIndicator.DayTradeCount = myfavcoinCandle.DayTradeCount;
+
+                #region Prefer BUSD if not available go for USDT
+
+                var busdfaviconcandle = myfavcoinCandleList.Where(x => x.Symbol == myfavcoin.Pair + "BUSD").FirstOrDefault();
+                if (busdfaviconcandle != null)
+                {
+                    signalIndicator.Symbol = busdfaviconcandle.Symbol;
+                }
+                else
+                {
+                    signalIndicator.Symbol = myfavcoin.Pair + "USDT";
+                }
+
+                #endregion
+
+
+                var selectedfaviconcandle = myfavcoinCandleList.Where(x => x.Symbol == signalIndicator.Symbol).FirstOrDefault();
+
+                signalIndicator.CurrentPrice = selectedfaviconcandle.CurrentPrice;
+                signalIndicator.DayHighPrice = selectedfaviconcandle.DayHighPrice;
+                signalIndicator.DayLowPrice = selectedfaviconcandle.DayLowPrice;
+                signalIndicator.DayVolume = myfavcoinCandleList.Sum(x => x.DayVolume);
+                signalIndicator.DayTradeCount = myfavcoinCandleList.Sum(x => x.DayTradeCount);
+                
+                signalIndicator.ReferenceSetHighPrice = ReferenceCandles.Max(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetLowPrice = ReferenceCandles.Min(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetDayVolume = ReferenceCandles.Average(x => x.DayVolume);
+                signalIndicator.ReferenceSetDayTradeCount = (int) ReferenceCandles.Average(x => x.DayTradeCount);
+
 
                 signalIndicator.DayPriceDifferencePercentage =
-                    ((myfavcoinCandle.DayHighPrice - myfavcoinCandle.DayLowPrice) /
-                    ((myfavcoinCandle.DayHighPrice + myfavcoinCandle.DayLowPrice) / 2)) * 100;
+                     ((signalIndicator.DayHighPrice - signalIndicator.DayLowPrice) /
+                     ((signalIndicator.DayHighPrice + signalIndicator.DayLowPrice) / 2)) * 100;
 
                 signalIndicator.PriceDifferenceCurrentAndHighPercentage = Math.Abs(
-                    (myfavcoinCandle.DayHighPrice - myfavcoinCandle.CurrentPrice) / ((myfavcoinCandle.DayHighPrice + myfavcoinCandle.CurrentPrice) / 2) * 100);
+                        (signalIndicator.DayHighPrice - signalIndicator.CurrentPrice) / ((signalIndicator.DayHighPrice + signalIndicator.CurrentPrice) / 2) * 100);
 
                 signalIndicator.PriceDifferenceCurrentAndLowPercentage = Math.Abs(
-                    ((myfavcoinCandle.DayLowPrice - myfavcoinCandle.CurrentPrice) / ((myfavcoinCandle.DayLowPrice + myfavcoinCandle.CurrentPrice) / 2)) * 100);
+                    ((signalIndicator.DayLowPrice - signalIndicator.CurrentPrice) / ((signalIndicator.DayLowPrice + signalIndicator.CurrentPrice) / 2)) * 100);
 
                 var dayAveragePrice = (signalIndicator.DayHighPrice + signalIndicator.DayLowPrice) / 2;
 
@@ -568,19 +599,63 @@ namespace Trader.MVVM.View
                 }
 
                 signalIndicators.Add(signalIndicator);
-
-                #endregion
-
-                // Create Trade mini bots that each group will handle 1/5th of the investment.
-                // Each mini bot will have 5 avatars that will wait for the right time to buy or sell.
-                // 1st bot will start the buying and waiting to make a profit. If Market is going down, based on the rules set second will jump to buy at a lower price
-                //
             }
+            #endregion
+
+            #region trade
+
+            var tradebots = await TradeDB.TradeBot.ToListAsync();
+
+            var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
+            var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").ToList();
+            var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
+            var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
+            var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
+            
+            for(int i=0;i< DianaBots.Count();i++)
+            {
+                if(DianaBots[i].IsActivelyTrading)
+                { 
+                    continue;
+                }
+
+                if(i>0)
+                {
+
+                    var previousCoinPrice= DianaBots[i-1].BuyPricePerCoin;
+                    var previousCoinPrice = DianaBots[i - 1].BuyPricePerCoin;
+                    var previousCoinPrice = DianaBots[i - 1].BuyPricePerCoin;
+
+                    signalIndicators.Where(x=>x.IsPicked==false).Max(x=>x.ReferenceSetDayTradeCount);
+                }
+
+            }
+
+            // take all bots one by one.
+            //if he is active -ingore ( for now)
+            // take the successor who is not active
+            //take the coin with biggest trades happening, who has dropped to the expectation of that bot
+            // suppose  the predecessor was ADA and was bought two days back with value 1.5, now you can buy ADA if its value is 5% down to the previous one
+            // now look at the price of the new coin you are going to buy at the time ADA was bought and compare that to the current price.
+            //if that price is also 5% less and the coin is a better buy than ADA, buy that coin.
+
+            // for the next coin, select the next coin in the list and repeat the same.
+
+
+            // For the second set, prefer different set of coins.
+
+            #endregion
+
+            // Create Trade mini bots that each group will handle 1/5th of the investment.
+            // Each mini bot will have 5 avatars that will wait for the right time to buy or sell.
+            // 1st bot will start the buying and waiting to make a profit. If Market is going down, based on the rules set second will jump to buy at a lower price
+            //  Sell all of batch when your profit goes 5% overall and then start again.
+
 
             string test = string.Empty;
         }
 
-
+        #region Unused Methods
         private static async Task<string> Execute()
         {
             //Provide your configuration and keys here, this allows the client to function as expected.
@@ -980,6 +1055,8 @@ namespace Trader.MVVM.View
                 }
             }
         }
+
+        #endregion Unused Methods
 
     }
 }

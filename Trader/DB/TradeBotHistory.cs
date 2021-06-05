@@ -7,9 +7,8 @@ using Newtonsoft.Json;
 
 namespace BinanceExchange.API.Models.Response
 {
-    public class TradeBot
+    public class TradeBotHistory
     {
-       
         public int Id { get; set; }
 
         public int Order { get; set; }
@@ -17,7 +16,7 @@ namespace BinanceExchange.API.Models.Response
         public string Name { get; set; }
 
         public string Avatar { get; set; }
-      
+
         public string Pair { get; set; }
 
         public decimal? DayHigh { get; set; }
@@ -31,7 +30,7 @@ namespace BinanceExchange.API.Models.Response
         public decimal? BuyPricePerCoin { get; set; }
 
         public decimal CurrentPricePerCoin { get; set; }
-       
+
         public decimal? QuantityBought { get; set; }
 
         public decimal? TotalBuyCost { get; set; }
@@ -51,12 +50,11 @@ namespace BinanceExchange.API.Models.Response
         public DateTime? CreatedDate { get; set; }
 
         public DateTime? UpdatedTime { get; set; }
-
     }
 
-    public partial class TradeBotConfiguration : IEntityTypeConfiguration<TradeBot>
+    public partial class TradeBotHistoryConfiguration : IEntityTypeConfiguration<TradeBotHistory>
     {
-        public void Configure(EntityTypeBuilder<TradeBot> builder)
+        public void Configure(EntityTypeBuilder<TradeBotHistory> builder)
         {
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.DayLow).IsRequired().HasColumnType("decimal(30, 12)");
