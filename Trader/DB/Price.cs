@@ -14,6 +14,7 @@ namespace Trader.Models
         public DateTime date { get; set; }
         public string pair { get; set; }
         public decimal price { get; set; }
+        public int DataSet { get; set; }
     }
 
     public partial class PriceConfiguration : IEntityTypeConfiguration<Price>

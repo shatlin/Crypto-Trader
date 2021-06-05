@@ -5,46 +5,45 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800" Background="#272537">
+    
+        <!--<Grid  >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="45"/>
+                <RowDefinition  Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370"/>
+                <ColumnDefinition  Width="370"/>
+                <ColumnDefinition  Width="370"/>
+                <ColumnDefinition  Width="370"/>
+                <ColumnDefinition  Width="*"/>
+            </Grid.ColumnDefinitions>
 
-    <Grid >
-        <Grid.RowDefinitions>
-            <RowDefinition Height="65"/>
-            <RowDefinition  Height="800"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
 
-        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="lblInvested" FontSize="30"  Foreground="#2ed191" Margin="20,0,0,0"  Grid.Row="0" Grid.Column="0" Text="Invested : " />
+        <TextBlock x:Name="lblCurrentValue" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="1" Text="Current Value : " />
+        <TextBlock x:Name="lblDifference" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="2" Text="Difference : "  />
+        <TextBlock x:Name="lblDifferencePercentage" Foreground="#2ed191"  FontSize="30" Grid.Row="0" Grid.Column="3" Text="Difference % : "  />
+            
+            <Button x:Name="btnUpdateBalance" Content="Refresh Balance" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13"
+           Grid.Row="0" Grid.Column="4"  Click="btnUpdateBalance_Click" HorizontalAlignment="Right"  Margin="0,0,10,0" Style="{StaticResource ButtonTheme}"   />
 
+            <DataGrid x:Name="BalanceDG" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
+                  Grid.Row="1" Grid.ColumnSpan="5" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Id" Width="60" Binding="{Binding Id}"  />
+                    <DataGridTextColumn Header="Asset"  Width="130" Binding="{Binding Asset}"/>
+                    <DataGridTextColumn Header="Available Coins" Width="180"  Binding="{Binding Free, StringFormat=N6}"/>
+                    <DataGridTextColumn Header="Bought Price" Width="180" Binding="{Binding BoughtPrice, StringFormat=N6}"/>
+                    <DataGridTextColumn Header="Current Price" Width="180" Binding="{Binding CurrentPrice, StringFormat=N6}"/>
+                    <DataGridTextColumn Header="Difference" Width="250" Binding="{Binding Difference, StringFormat=N2}"/>
+                    <DataGridTextColumn Header="Difference %" Width="250" Binding="{Binding DifferencePercentage, StringFormat=N2}"/>
+                    <DataGridTextColumn Header="Coin Buy Price" Width="250" Binding="{Binding AverageBuyingCoinPrice, StringFormat=N6}"/>
+                    <DataGridTextColumn Header="Coin Current Price" Width="250" Binding="{Binding CurrentCoinPrice, StringFormat=N6}"/>
+                    <DataGridTextColumn Header="Locked" Binding="{Binding Locked, StringFormat=N0}"/>
 
-        <Label x:Name="lblInvested" FontSize="14" HorizontalAlignment="left" VerticalAlignment="Center" Margin="5"  Grid.Row="0" Content="Invested : " Foreground="White"/>
-
-        <Label x:Name="lblCurrentValue" FontSize="14" HorizontalAlignment="left" VerticalAlignment="Center" Margin="150,0,0,0"               Grid.Row="0" Content="Current Value : " Foreground="White"/>
-
-        <Label x:Name="lblDifference" FontSize="14" HorizontalAlignment="left" VerticalAlignment="Center" Margin="350,0,0,0"
-               Grid.Row="0" Content="Difference : " Foreground="White"/>
-
-        <Label x:Name="lblDifferencePercentage" FontSize="14" HorizontalAlignment="left" VerticalAlignment="Center"  Margin="500,0,0,0" Grid.Row="0" Content="Difference % : " Foreground="White"/>
-
-        <Button x:Name="btnUpdateBalance" Content="Refresh Balance" HorizontalAlignment="Right"  VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13"
-           Grid.Column="0" Grid.Row="0" Margin="20,15,10,10" Click="btnUpdateBalance_Click"  Style="{StaticResource ButtonTheme}"   />
-        
-        <DataGrid x:Name="BalanceDG" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
-                  Grid.Row="1" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Id" Width="70" Binding="{Binding Id}"  />
-                <DataGridTextColumn Header="Asset"  Width="100" Binding="{Binding Asset}"/>
-                <DataGridTextColumn Header="Available Coins" Width="150"  Binding="{Binding Free, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Bought Price" Width="150" Binding="{Binding BoughtPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Current Price" Width="150" Binding="{Binding CurrentPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Difference in USD" Width="150" Binding="{Binding Difference, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Difference %" Width="150" Binding="{Binding DifferencePercentage, StringFormat=N2}"/>
-
-                <DataGridTextColumn Header="Coin Avg Buying Price" Width="170" Binding="{Binding AverageBuyingCoinPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Coin Current Price" Width="170" Binding="{Binding CurrentCoinPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Locked" Binding="{Binding Locked, StringFormat=N0}"/>
-
-            </DataGrid.Columns>
-        </DataGrid>
-    </Grid>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>-->
+   
 </UserControl>

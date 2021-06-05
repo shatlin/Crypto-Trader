@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210604192557_m10")]
+    partial class m10
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -299,20 +301,8 @@ namespace Trader.Migrations
                     b.Property<int>("CandleCurrentSet")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CandleLastUpdatedTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("DailyCandleCurrentSet")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("DailyCandleLastUpdatedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsCandleCurrentlyBeingUpdated")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDailyCandleCurrentlyBeingUpdated")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

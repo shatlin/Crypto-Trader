@@ -16,42 +16,49 @@
     </Window.DataContext>
 
     <Border Background="#272537" CornerRadius="10">
-    
+        
     <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
+             
+             <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="45"></RowDefinition>
                 <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="ProTrader"
+            <TextBlock Text="Pro"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Left"
-                       Foreground="White"
+                       Foreground="#ff4265"
                        FontSize="22"
-                       Margin="20,0,0,0" FontFamily="/Fonts/#Poppins"
+                       Margin="10,0,0,0" FontFamily="/Fonts/#Poppins"
                        ></TextBlock>
-
-            <StackPanel Grid.Row="1" >
+            <TextBlock Text="Trader"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Left"
+                       Foreground="#2ed191"
+                       FontSize="22"
+                       Margin="45,0,0,0" FontFamily="/Fonts/#Poppins"
+                       ></TextBlock>
+        
+            <StackPanel Grid.Row="0" Grid.Column="0"  Orientation="Horizontal" HorizontalAlignment="Center"  >
 
                 <RadioButton Content="Home" IsChecked="True"
                              Command="{Binding HomeViewCommand}"
                              Height="50"
-                             Foreground="White"
-                             FontSize="14" FontFamily="/Fonts/#Poppins"
+                             Foreground="#ff4265"
+                             FontSize="17" FontFamily="/Fonts/#Poppins"
                              Style="{StaticResource MenuButtonTheme}"
                              ></RadioButton>
 
-                <RadioButton Content="Balance"
+                <!--<RadioButton Content="Balance"
                              Height="50"
-                             Foreground="White"
-                             FontSize="14" FontFamily="/Fonts/#Poppins"
+                             Foreground="#ff4265"
+                             FontSize="17" FontFamily="/Fonts/#Poppins"
                                 Command="{Binding BalanceViewCommand}"
                              Style="{StaticResource MenuButtonTheme}"
-                             ></RadioButton>
+                             ></RadioButton>-->
 
             </StackPanel>
             <!--<TextBox Width="250" Height="40" VerticalAlignment="Center"

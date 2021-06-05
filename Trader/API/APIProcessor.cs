@@ -32,7 +32,7 @@ namespace BinanceExchange.API
                 _cacheEnabled = true;
             }
             _logger = LogManager.GetLogger(typeof(APIProcessor));
-            _logger.Debug( $"API Processor set up. Cache Enabled={_cacheEnabled}");
+            //_logger.Debug( $"API Processor set up. Cache Enabled={_cacheEnabled}");
         }
 
         /// <summary>

@@ -8,9 +8,16 @@ using System.Threading.Tasks;
 
 namespace Trader.Models
 {
-    public class MyCoins
+    public class MyTradeFavouredCoins
     {
-      
+
+        
+        public int Id { get; set; }
+
+        public string Pair { get; set; }
+
+        public int PreferenceOrder { get; set; }
+
         public List<string> GetMyCoins()
         {
             return new List<string>

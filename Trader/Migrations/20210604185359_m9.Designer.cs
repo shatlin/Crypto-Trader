@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210604185359_m9")]
+    partial class m9
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -142,90 +144,6 @@ namespace Trader.Migrations
                     b.ToTable("Candle");
                 });
 
-            modelBuilder.Entity("BinanceExchange.API.Models.Response.DailyCandle", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("Change")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("Close")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<DateTime>("CloseTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<int>("DataSet")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("DayHighPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("DayLowPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<int>("DayTradeCount")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("DayVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("High")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("Low")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<int>("NumberOfTrades")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Open")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("OpenPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<DateTime>("OpenTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("PreviousClosePrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("PriceChangePercent")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("QuoteAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<DateTime>("RecordedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Symbol")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TakerBuyBaseAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("TakerBuyQuoteAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("Volume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("WeightedAveragePercent")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DailyCandle");
-                });
-
             modelBuilder.Entity("BinanceExchange.API.Models.Response.MyTrade", b =>
                 {
                     b.Property<int>("Id")
@@ -299,20 +217,8 @@ namespace Trader.Migrations
                     b.Property<int>("CandleCurrentSet")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CandleLastUpdatedTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("DailyCandleCurrentSet")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("DailyCandleLastUpdatedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsCandleCurrentlyBeingUpdated")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDailyCandleCurrentlyBeingUpdated")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

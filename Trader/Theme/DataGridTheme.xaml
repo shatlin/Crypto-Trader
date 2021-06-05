@@ -9,15 +9,16 @@
         <Setter Property="ColumnHeaderStyle">
             <Setter.Value>
                 <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#272537" />
+                    <Setter Property="Background" Value="#2ed191" />
                     <Setter Property="Foreground" Value="White" />
                     <Setter Property="BorderBrush" Value="White"/>
                     <Setter Property="BorderThickness" Value="1 1 1 1"/>
-                    <Setter Property="Height" Value="32" />
-                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="Height" Value="50" />
+                    <Setter Property="FontSize" Value="23"/>
                     <Setter Property="FontWeight" Value="DemiBold"/>
                     <Setter Property="Width" Value="auto"/>
                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="Typography.Capitals" Value="SmallCaps"></Setter>
                 </Style>
             </Setter.Value>
         </Setter>
@@ -25,8 +26,8 @@
             <Setter.Value>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Height" Value="35"/>
-                    <Setter Property="FontSize" Value="14"/>
+                    <Setter Property="Height" Value="45"/>
+                    <Setter Property="FontSize" Value="25"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="Template" Value="{DynamicResource DataGridRowControlTemplate1}"/>
                     <Style.Triggers>
@@ -49,12 +50,12 @@
                     <Style.Triggers>
                         <!-- Highlight selected rows -->
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#b81a2e" />
+                            <Setter Property="Background" Value="#ff4265" />
                             <Setter Property="BorderBrush" Value="Transparent" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Background" Value="#b81a2e" />
+                            <Setter Property="Background" Value="#ff4265" />
                             <Setter Property="BorderBrush" Value="Black" />
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Foreground" Value="White" />

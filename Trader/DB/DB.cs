@@ -24,7 +24,11 @@ namespace Trader.Models
         public DbSet<Balance> Balance { get; set; }
         //public DbSet<PriceChange> PriceChange { get; set; }
         public DbSet<Candle> Candle { get; set; }
+        public DbSet<DailyCandle> DailyCandle { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
+        public DbSet<MyTradeFavouredCoins> MyTradeFavouredCoins { get; set; }
+        public DbSet<Counter> Counter { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -42,6 +46,7 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new MyTradeConfiguration());
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
+            modelBuilder.ApplyConfiguration(new DailyCandleConfiguration());
         }
 
     }
