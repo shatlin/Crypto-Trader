@@ -37,7 +37,7 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? TotalCurrentValue { get; set; }
 
-        public decimal? TotalCurrentProft { get; set; }
+        public decimal? TotalCurrentProfit { get; set; }
 
         public decimal? OriginalAllocatedValue { get; set; }
 
@@ -50,6 +50,12 @@ namespace BinanceExchange.API.Models.Response
         public DateTime? CreatedDate { get; set; }
 
         public DateTime? UpdatedTime { get; set; }
+
+        public decimal? BuyingCommision { get; set; }
+        public decimal SoldPricePricePerCoin { get; set; }
+        public decimal QuantitySold { get; set; }
+        public decimal? SoldCommision { get; set; }
+        public decimal? TotalSoldAmount { get; set; }
     }
 
     public partial class TradeBotHistoryConfiguration : IEntityTypeConfiguration<TradeBotHistory>
@@ -65,8 +71,14 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.QuantityBought).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalBuyCost).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalCurrentValue).IsRequired().HasColumnType("decimal(30, 12)");
-            builder.Property(e => e.TotalCurrentProft).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.TotalCurrentProfit).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.OriginalAllocatedValue).IsRequired().HasColumnType("decimal(30, 12)");
+
+            builder.Property(e => e.BuyingCommision).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SoldPricePricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.QuantitySold).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SoldCommision).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.TotalSoldAmount).IsRequired().HasColumnType("decimal(30, 12)");
         }
 
     }

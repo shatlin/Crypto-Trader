@@ -12,13 +12,14 @@ namespace Trader.Models
     {
         public int Id { get; set; }
         public string Symbol { get; set; }
-        public decimal CurrentPrice { get; set; }
 
+        public decimal CurrentPrice { get; set; }
         public decimal DayLowPrice { get; set; }
         public decimal DayHighPrice { get; set; }
         public decimal DayVolume { get; set; }
         public decimal DayTradeCount { get; set; }
 
+        public decimal ReferenceSetAverageCurrentPrice { get; set; }
         public decimal ReferenceSetLowPrice { get; set; }
         public decimal ReferenceSetHighPrice { get; set; }
         public decimal ReferenceSetDayVolume { get; set; }

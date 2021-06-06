@@ -570,12 +570,12 @@ namespace Trader.MVVM.View
                 signalIndicator.DayLowPrice = selectedfaviconcandle.DayLowPrice;
                 signalIndicator.DayVolume = myfavcoinCandleList.Sum(x => x.DayVolume);
                 signalIndicator.DayTradeCount = myfavcoinCandleList.Sum(x => x.DayTradeCount);
-                
+
                 signalIndicator.ReferenceSetHighPrice = ReferenceCandles.Max(x => x.CurrentPrice);
                 signalIndicator.ReferenceSetLowPrice = ReferenceCandles.Min(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetAverageCurrentPrice= ReferenceCandles.Average(x => x.CurrentPrice);
                 signalIndicator.ReferenceSetDayVolume = ReferenceCandles.Average(x => x.DayVolume);
-                signalIndicator.ReferenceSetDayTradeCount = (int) ReferenceCandles.Average(x => x.DayTradeCount);
-
+                signalIndicator.ReferenceSetDayTradeCount = (int)ReferenceCandles.Average(x => x.DayTradeCount);
 
                 signalIndicator.DayPriceDifferencePercentage =
                      ((signalIndicator.DayHighPrice - signalIndicator.DayLowPrice) /
@@ -600,36 +600,176 @@ namespace Trader.MVVM.View
 
                 signalIndicators.Add(signalIndicator);
             }
+
+            var reorderedSignalIndicatorList = signalIndicators.OrderBy(x => x.ReferenceSetDayTradeCount);
             #endregion
 
             #region trade
 
-            var tradebots = await TradeDB.TradeBot.ToListAsync();
+            var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
 
-            var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
-            var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").ToList();
-            var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
-            var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
-            var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
-            
-            for(int i=0;i< DianaBots.Count();i++)
+            #region buying scan
+
+            //var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
+            //var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").OrderBy(x=>x.Order).ToList();
+            //var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
+            //var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
+            //var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
+
+            for (int i = 0; i < tradebots.Count(); i++)
             {
-                if(DianaBots[i].IsActivelyTrading)
-                { 
+
+                if (tradebots[i].IsActivelyTrading) //trading, go to the next one
+                {
                     continue;
                 }
-
-                if(i>0)
+                if (tradebots[i].Order==1) // first bot in the group
                 {
+                        foreach (var indicator in reorderedSignalIndicatorList)
+                        {
 
-                    var previousCoinPrice= DianaBots[i-1].BuyPricePerCoin;
-                    var previousCoinPrice = DianaBots[i - 1].BuyPricePerCoin;
-                    var previousCoinPrice = DianaBots[i - 1].BuyPricePerCoin;
+                            if (indicator.IsPicked) continue;
 
-                    signalIndicators.Where(x=>x.IsPicked==false).Max(x=>x.ReferenceSetDayTradeCount);
+                            var indicatorcurrentprice = indicator.CurrentPrice;
+                            var indicatorSymbol = indicator.Symbol;
+                            var indicatoroldprice = indicator.ReferenceSetAverageCurrentPrice;
+
+                            var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
+
+                            if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
+                            {
+                                //buy
+                                indicator.IsPicked = true;
+                                // Update buy record, set it active, in live system, you will be issuing a buy order
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                }
+                else
+                {
+                    //not the first bot, so the previous bot will be actively trading.
+                    var previousCoinPrice = tradebots[i - 1].BuyPricePerCoin;
+                    var previousCoinPair = tradebots[i - 1].Pair;
+                    DateTime PreviousCoinBuyTime = Convert.ToDateTime(tradebots[i - 1].BuyTime);
+
+                    foreach (var indicator in reorderedSignalIndicatorList)
+                    {
+                        if (indicator.IsPicked) continue;
+                        var indicatorcurrentprice = indicator.CurrentPrice;
+                        var indicatorSymbol = indicator.Symbol;
+
+                        var closestcandles = await TradeDB.Candle.Where(
+                            x => x.Symbol == indicator.Symbol &&
+                            x.RecordedTime.Date == PreviousCoinBuyTime.Date &&
+                            x.RecordedTime.Hour == PreviousCoinBuyTime.Hour
+                            ).ToListAsync();
+
+                        long min = long.MaxValue;
+
+                        Candle selectedCandle = new Candle();
+
+                        foreach (var candidatecandle in closestcandles)
+                        {
+                            if (Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks) < min)
+                            {
+                                min = Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks);
+                                selectedCandle = candidatecandle;
+                            }
+                        }
+                        var indicatoroldprice = selectedCandle.CurrentPrice;
+                        var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
+
+                        if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
+                        {
+                            //buy
+                            indicator.IsPicked = true;
+                            // Update buy record, set it active, in live system, you will be issuing a buy order
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                }
+               
+            }
+
+            #endregion buying scan
+
+
+
+
+            #region selling scan
+
+            //var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
+            //var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").OrderBy(x=>x.Order).ToList();
+            //var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
+            //var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
+            //var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
+
+            var botgroups= tradebots.OrderByDescending(x =>x.Order).GroupBy(x=>x.Name).ToList();
+
+            foreach(var botgroup in botgroups)
+            {
+                decimal? totalbuyingprice = 0;
+                decimal? totalcurrentprice=0;
+                
+                foreach (var bot in botgroup)
+                { 
+                    if (!bot.IsActivelyTrading) // not in trading, so cannot sell
+                    {
+                        continue;
+                    }
+
+                    // collect buying price of each coin in the group and collect quantity bought
+                    // collect current price
+                    // if the total current price gives you more than 4% profit sell it.
+
+                        decimal? BuyingCoinPrice = bot.BuyPricePerCoin;
+                        var CoinPair = bot.Pair;
+                        decimal quanitybought = Convert.ToDecimal(bot.QuantityBought);
+                        decimal? buyingcommision=bot.BuyingCommision;
+
+                        totalbuyingprice += (BuyingCoinPrice*quanitybought + buyingcommision);
+
+                        foreach (var indicator in reorderedSignalIndicatorList)
+                        {
+                           if(indicator.Symbol==CoinPair)
+                           {
+                            var currentPrice=indicator.CurrentPrice;
+                            totalcurrentprice+=(indicator.CurrentPrice* quanitybought)+((indicator.CurrentPrice * quanitybought)*0.75M/100);
+                            break;
+                           }
+                        }
+                }
+
+                var pricedifference= (totalcurrentprice- totalbuyingprice)/((totalcurrentprice + totalbuyingprice)/2)*100;
+
+                if(pricedifference>5)
+                {
+                    foreach (var bot in botgroup)
+                    {
+                        //Your total profit is more than 5%. Sell it and get ready to buy again.
+                                // update record fully.
+                                // create sell order (in live system)
+                                // copy the record to history
+                                // reset records to buy again
+
+                        // In the future write code to wait and see if the prices keep going up before selling abruptly.
+                        //Only when you have made sufficiently sure that prices will not go higher, then sell them.
+                    }
+
                 }
 
             }
+
+           
+
+            #endregion selling scan
+
 
             // take all bots one by one.
             //if he is active -ingore ( for now)
@@ -644,11 +784,12 @@ namespace Trader.MVVM.View
 
             // For the second set, prefer different set of coins.
 
-            #endregion
+            #endregion trade
 
             // Create Trade mini bots that each group will handle 1/5th of the investment.
             // Each mini bot will have 5 avatars that will wait for the right time to buy or sell.
             // 1st bot will start the buying and waiting to make a profit. If Market is going down, based on the rules set second will jump to buy at a lower price
+
             //  Sell all of batch when your profit goes 5% overall and then start again.
 
 
