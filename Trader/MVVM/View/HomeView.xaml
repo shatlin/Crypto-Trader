@@ -10,6 +10,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="45"/>
             <RowDefinition  Height="*"/>
+            <RowDefinition  Height="45"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="350"/>
@@ -40,16 +41,19 @@
                 <DataGridTextColumn Header="Available Coins" Width="180"  Binding="{Binding Free, StringFormat=N6}"/>
                 <DataGridTextColumn Header="Bought Price" Width="180" Binding="{Binding BoughtPrice, StringFormat=N6}"/>
                 <DataGridTextColumn Header="Current Price" Width="180" Binding="{Binding CurrentPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Difference" Width="250" Binding="{Binding Difference, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Difference %" Width="250" Binding="{Binding DifferencePercentage, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Coin Buy Price" Width="250" Binding="{Binding AverageBuyingCoinPrice, StringFormat=N6}"/>
+                <DataGridTextColumn Header="Difference" Width="150" Binding="{Binding Difference, StringFormat=N2}"/>
+                <DataGridTextColumn Header="Difference %" Width="150" Binding="{Binding DifferencePercentage, StringFormat=N2}"/>
+                <DataGridTextColumn Header="Coin Buy Price (Approx)" Width="300" Binding="{Binding AverageBuyingCoinPrice, StringFormat=N6}"/>
                 <DataGridTextColumn Header="Coin Current Price" Width="250" Binding="{Binding CurrentCoinPrice, StringFormat=N6}"/>
                 <DataGridTextColumn Header="Locked" Binding="{Binding Locked, StringFormat=N0}"/>
             </DataGrid.Columns>
         </DataGrid>
+        <Button x:Name="btnClearRobot" Click="btnClearRobot_Click"  Content="Clear Bot Data" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13" Grid.Row="2" Grid.Column="5"
+           HorizontalAlignment="Right"  Margin="0,0,10,0" Style="{StaticResource ButtonTheme}"   />
     </Grid>
 
-  
+ 
+
     <!--<StackPanel>
         <TextBlock Text="Discover" Foreground="White" FontSize="28"
                    HorizontalAlignment="Left" Margin="0,0,0,20"></TextBlock>

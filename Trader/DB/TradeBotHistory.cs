@@ -41,6 +41,8 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? OriginalAllocatedValue { get; set; }
 
+        public decimal? AvailableAmountForTrading { get; set; }
+
         public bool IsActivelyTrading { get; set; }
 
         public DateTime? BuyTime { get; set; }
@@ -73,7 +75,7 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.TotalCurrentValue).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalCurrentProfit).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.OriginalAllocatedValue).IsRequired().HasColumnType("decimal(30, 12)");
-
+            builder.Property(e => e.AvailableAmountForTrading).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.BuyingCommision).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SoldPricePricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.QuantitySold).IsRequired().HasColumnType("decimal(30, 12)");

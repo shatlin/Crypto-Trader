@@ -24,6 +24,7 @@ using Trader.Models;
 using WebSocketSharp;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using AutoMapper;
 
 namespace Trader.MVVM.View
 {
@@ -42,7 +43,7 @@ namespace Trader.MVVM.View
         DB db;
         int intervalminutes = 15;
         double hourDifference = 2;
-
+        IMapper iMapper;
         DateTime referenceStartTime = DateTime.Today;
 
         public HomeView()
@@ -86,8 +87,14 @@ namespace Trader.MVVM.View
 
             SetGrid();
             CalculateBalanceSummary();
-            //await GetCandles();
-            //await GetCandlesOnceaDay();
+
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<TradeBot, TradeBotHistory>();
+            });
+
+            iMapper = config.CreateMapper();
+
         }
 
         //private async void BalanceTimer_Tick(object sender, EventArgs e)
@@ -128,13 +135,13 @@ namespace Trader.MVVM.View
             DB BalanceDB = new DB();
             try
             {
-
                 await BalanceDB.Database.ExecuteSqlRawAsync("TRUNCATE TABLE Balance");
                 AccountInformationResponse accinfo = await client.GetAccountInformation();
                 var trades = await BalanceDB.MyTrade.ToListAsync();
 
                 foreach (var asset in accinfo.Balances)
                 {
+
                     try
                     {
                         if (asset.Free > 0)
@@ -186,8 +193,16 @@ namespace Trader.MVVM.View
                                 }
                             }
                             bal.BoughtPrice = spentprice;
-                            bal.AverageBuyingCoinPrice = bal.BoughtPrice / bal.Free;
-                            bal.CurrentCoinPrice = bal.CurrentPrice / bal.Free;
+                            bal.AverageBuyingCoinPrice = (bal.BoughtPrice / bal.Free) + (bal.BoughtPrice / bal.Free) * 1 / 100;
+
+                            try
+                            {
+                                bal.CurrentCoinPrice = prices.Where(x => x.Symbol == asset.Asset + "USDT").FirstOrDefault().Price;
+                            }
+                            catch
+                            {
+                                bal.CurrentCoinPrice = (bal.CurrentPrice / bal.Free);
+                            }
                             bal.Difference = bal.CurrentPrice - bal.BoughtPrice;
                             bal.DifferencePercentage = (bal.CurrentPrice - bal.BoughtPrice) / ((bal.CurrentPrice + bal.BoughtPrice) / 2) * 100;
 
@@ -331,8 +346,11 @@ namespace Trader.MVVM.View
             await Trade();
         }
 
-        private async Task GetCandles()
+        private async Task<List<Candle>> GetCandles()
         {
+
+            List<Candle> candles = new List<Candle>();
+
             logger.Info("Getting Candle Started at " + DateTime.Now);
             DB candledb = new DB();
 
@@ -340,7 +358,7 @@ namespace Trader.MVVM.View
 
             if (counter.IsCandleCurrentlyBeingUpdated)
             {
-                return;
+                return candles;
             }
 
             var minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
@@ -349,7 +367,7 @@ namespace Trader.MVVM.View
             {
 
                 logger.Info(" Candle retrieved only " + minutedifference + " minutes back. Dont need to get again");
-                return;
+                return candles;
             }
 
             counter.IsCandleCurrentlyBeingUpdated = true;
@@ -414,6 +432,7 @@ namespace Trader.MVVM.View
 
                     if (isCandleExisting == null)
                     {
+                        candles.Add(candle);
                         await candledb.Candle.AddAsync(candle);
                         await candledb.SaveChangesAsync();
                     }
@@ -427,6 +446,7 @@ namespace Trader.MVVM.View
             candledb.Counter.Update(counter);
             await candledb.SaveChangesAsync();
             logger.Info("Getting Candle Completed at " + DateTime.Now);
+            return candles;
         }
 
         private async Task GetCandlesOnceaDay()
@@ -512,32 +532,91 @@ namespace Trader.MVVM.View
 
         private async void btnTrade_Click(object sender, RoutedEventArgs e)
         {
-            TraderTimer.Start();
+            // TraderTimer.Start();
             await Trade();
         }
 
-        private async Task Trade()
+        private async void btnClearRobot_Click(object sender, RoutedEventArgs e)
         {
+            DB TradeDB = new DB();
+
+            #region clear data for testing
+
+            var bots = await TradeDB.TradeBot.ToListAsync();
+
+            foreach (var bot in bots)
+            {
+                bot.Pair = null;
+                bot.DayHigh = 0.0M;
+                bot.DayLow = 0.0M;
+                bot.BuyPricePerCoin = 0.0M;
+                bot.CurrentPricePerCoin = 0.0M;
+                bot.QuantityBought = 0.0M;
+                bot.TotalBuyCost = 0.0M;
+                bot.TotalCurrentValue = 0.0M;
+                bot.TotalSoldAmount = 0.0M;
+                bot.BuyTime = null;
+                bot.SellTime = null;
+                bot.CreatedDate = null;
+                bot.UpdatedTime = null;
+                bot.IsActivelyTrading = false;
+                bot.AvailableAmountForTrading = 200;
+                bot.OriginalAllocatedValue = 200;
+                bot.BuyingCommision = 0.0M;
+                bot.QuantitySold = 0.0M;
+                bot.SoldCommision = 0.0M;
+                bot.SoldPricePricePerCoin = 0.0M;
+                bot.TotalCurrentProfit = 0.0M;
+                TradeDB.Update(bot);
+            }
+            await TradeDB.SaveChangesAsync();
+
+            #endregion
+        }
+
+
+        private async Task<IOrderedEnumerable<SignalIndicator>> GetSignalIndicators(int currentCandleSet)
+        {
+
             DB TradeDB = new DB();
 
             List<SignalIndicator> signalIndicators = new List<SignalIndicator>();
             Counter counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
-            List<MyTradeFavouredCoins> myTradeFavouredCoins = await TradeDB.MyTradeFavouredCoins.OrderBy(x => x.PreferenceOrder).AsNoTracking().ToListAsync();
-            await GetCandles();
-            List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet == (counter.CandleCurrentSet - 1)).ToListAsync();
 
-            int currentCandleSet = (counter.CandleCurrentSet - 1);
+            List<MyTradeFavouredCoins> myTradeFavouredCoins = await TradeDB.MyTradeFavouredCoins.OrderBy(x => x.PreferenceOrder).AsNoTracking().ToListAsync();
+
+#if !DEBUG
+              int currentCandleSet = (counter.CandleCurrentSet - 1);
+#endif
+
+#if DEBUG
+            //   int currentCandleSet = (counter.CandleCurrentSet - 1);
+#endif
+
             int refenceCandleCount = currentCandleSet - 12;
+
+            List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet == (currentCandleSet)).ToListAsync();
+
+            //In Prod, get the latest candles from binance then go to remaining.
 
             List<Candle> ReferenceCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet >= refenceCandleCount && x.DataSet < currentCandleSet).ToListAsync();
 
 
-            List<SymbolPriceResponse> prices = await client.GetAllPrices();
+            // List<SymbolPriceResponse> prices = await client.GetAllPrices();
+#if !DEBUG
             List<Balance> currentBalance = await UpdateBalance(prices);
+#endif
 
             foreach (var myfavcoin in myTradeFavouredCoins)
             {
-                var myfavcoinCandleList = latestCandles.Where(x => x.Symbol == myfavcoin.Pair + "USDT" || x.Symbol == myfavcoin.Pair + "BUSD" || x.Symbol == myfavcoin.Pair + "USDC");
+
+                if (myfavcoin.Pair == "CRV" || myfavcoin.Pair == "LPT")
+                {
+
+                }
+                List<string> allusdcombinations = new List<string>() { myfavcoin.Pair + "USDT", myfavcoin.Pair + "BUSD", myfavcoin.Pair + "USDC" };
+
+                var myfavcoinCandleList = latestCandles.Where(x => allusdcombinations.Contains(x.Symbol));
 
                 if (myfavcoinCandleList == null)
                 {
@@ -563,19 +642,27 @@ namespace Trader.MVVM.View
                 #endregion
 
 
-                var selectedfaviconcandle = myfavcoinCandleList.Where(x => x.Symbol == signalIndicator.Symbol).FirstOrDefault();
+                var selectedfavcoincandle = myfavcoinCandleList.Where(x => x.Symbol == signalIndicator.Symbol).FirstOrDefault();
 
-                signalIndicator.CurrentPrice = selectedfaviconcandle.CurrentPrice;
-                signalIndicator.DayHighPrice = selectedfaviconcandle.DayHighPrice;
-                signalIndicator.DayLowPrice = selectedfaviconcandle.DayLowPrice;
+
+                // get the data from selectedfav coin
+                signalIndicator.CurrentPrice = selectedfavcoincandle.CurrentPrice;
+                signalIndicator.DayHighPrice = selectedfavcoincandle.DayHighPrice;
+                signalIndicator.DayLowPrice = selectedfavcoincandle.DayLowPrice;
+
+
+                //myfavcoinCandleList the list of records for the same coin in USDT,BUSD and USDC. Get some of these for indicator.
                 signalIndicator.DayVolume = myfavcoinCandleList.Sum(x => x.DayVolume);
                 signalIndicator.DayTradeCount = myfavcoinCandleList.Sum(x => x.DayTradeCount);
 
-                signalIndicator.ReferenceSetHighPrice = ReferenceCandles.Max(x => x.CurrentPrice);
-                signalIndicator.ReferenceSetLowPrice = ReferenceCandles.Min(x => x.CurrentPrice);
-                signalIndicator.ReferenceSetAverageCurrentPrice= ReferenceCandles.Average(x => x.CurrentPrice);
-                signalIndicator.ReferenceSetDayVolume = ReferenceCandles.Average(x => x.DayVolume);
-                signalIndicator.ReferenceSetDayTradeCount = (int)ReferenceCandles.Average(x => x.DayTradeCount);
+
+                var refcans = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol));
+
+                signalIndicator.ReferenceSetHighPrice = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Max(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetLowPrice = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Min(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetAverageCurrentPrice = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Average(x => x.CurrentPrice);
+                signalIndicator.ReferenceSetDayVolume = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Sum(x => x.DayVolume);
+                signalIndicator.ReferenceSetDayTradeCount = (int)ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Sum(x => x.DayTradeCount);
 
                 signalIndicator.DayPriceDifferencePercentage =
                      ((signalIndicator.DayHighPrice - signalIndicator.DayLowPrice) /
@@ -601,20 +688,20 @@ namespace Trader.MVVM.View
                 signalIndicators.Add(signalIndicator);
             }
 
-            var reorderedSignalIndicatorList = signalIndicators.OrderBy(x => x.ReferenceSetDayTradeCount);
-            #endregion
+            var reorderedSignalIndicatorList = signalIndicators.OrderByDescending(x => x.ReferenceSetDayTradeCount);
 
-            #region trade
+            return reorderedSignalIndicatorList;
+            #endregion
+        }
+
+        private async Task PerformBuys(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
+        {
+            DB TradeDB = new DB();
 
             var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
 
             #region buying scan
 
-            //var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
-            //var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").OrderBy(x=>x.Order).ToList();
-            //var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
-            //var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
-            //var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
 
             for (int i = 0; i < tradebots.Count(); i++)
             {
@@ -623,39 +710,62 @@ namespace Trader.MVVM.View
                 {
                     continue;
                 }
-                if (tradebots[i].Order==1) // first bot in the group
+                if (tradebots[i].Order == 1)
                 {
-                        foreach (var indicator in reorderedSignalIndicatorList)
+
+                    // first bot in the group and not actively trading, so no refence amounts to trade with,
+                    //this bot will scan the market condition for a favorable buy.
+
+                    //In the future, it should actively try to buy when the price of the coin is at its lowest.
+
+                    foreach (var indicator in SignalGeneratorList)
+                    {
+                        if (indicator.IsPicked) continue;
+                        var indicatorcurrentprice = indicator.CurrentPrice;
+                        var indicatorSymbol = indicator.Symbol;
+                        var indicatoroldprice = indicator.ReferenceSetAverageCurrentPrice;
+                        var pricedifferencepercentage = (indicatorcurrentprice - indicatoroldprice) /
+                        ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
+
+                        if (
+                            pricedifferencepercentage < 0 &&
+                            Math.Abs(pricedifferencepercentage) > tradebots[i].BuyWhenValuePercentageIsBelow
+                            )
                         {
+                            tradebots[i].IsActivelyTrading = true;
+                            tradebots[i].Pair = indicator.Symbol;
+                            tradebots[i].DayHigh = indicator.DayHighPrice;
+                            tradebots[i].DayLow = indicator.DayLowPrice;
+                            tradebots[i].CreatedDate = DateTime.Now;
+                            tradebots[i].BuyPricePerCoin = indicator.CurrentPrice;
+                            tradebots[i].QuantityBought = tradebots[i].AvailableAmountForTrading / indicator.CurrentPrice;
+                            tradebots[i].BuyingCommision = tradebots[i].AvailableAmountForTrading * 0.075M / 100;
+                            tradebots[i].TotalBuyCost = tradebots[i].AvailableAmountForTrading + tradebots[i].BuyingCommision;
+                            tradebots[i].CurrentPricePerCoin = indicator.CurrentPrice;
+                            tradebots[i].TotalCurrentValue = tradebots[i].AvailableAmountForTrading;
+                            tradebots[i].TotalCurrentProfit = 0;
+                            tradebots[i].BuyTime = DateTime.Now;
+                            tradebots[i].AvailableAmountForTrading = 0;
+                            TradeDB.TradeBot.Update(tradebots[i]);
 
-                            if (indicator.IsPicked) continue;
-
-                            var indicatorcurrentprice = indicator.CurrentPrice;
-                            var indicatorSymbol = indicator.Symbol;
-                            var indicatoroldprice = indicator.ReferenceSetAverageCurrentPrice;
-
-                            var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
-
-                            if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
-                            {
-                                //buy
-                                indicator.IsPicked = true;
-                                // Update buy record, set it active, in live system, you will be issuing a buy order
-                            }
-                            else
-                            {
-                                continue;
-                            }
+                            await TradeDB.SaveChangesAsync();
+                            indicator.IsPicked = true;
+                            // Update buy record, set it active, in live system, you will be issuing a buy order
                         }
+                        else
+                        {
+                            continue;
+                        }
+                    }
                 }
                 else
                 {
-                    //not the first bot, so the previous bot will be actively trading.
+                    //not the first bot, so the previous bot will be actively trading. The lower ones are support bots, buy only when the current prices are so much lower than the first bot
                     var previousCoinPrice = tradebots[i - 1].BuyPricePerCoin;
                     var previousCoinPair = tradebots[i - 1].Pair;
                     DateTime PreviousCoinBuyTime = Convert.ToDateTime(tradebots[i - 1].BuyTime);
 
-                    foreach (var indicator in reorderedSignalIndicatorList)
+                    foreach (var indicator in SignalGeneratorList)
                     {
                         if (indicator.IsPicked) continue;
                         var indicatorcurrentprice = indicator.CurrentPrice;
@@ -679,13 +789,30 @@ namespace Trader.MVVM.View
                                 selectedCandle = candidatecandle;
                             }
                         }
-                        var indicatoroldprice = selectedCandle.CurrentPrice;
+                        var indicatoroldprice = selectedCandle.CurrentPrice; //[TO DO] - Relook at this line
+
                         var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
 
                         if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
                         {
                             //buy
+                            tradebots[i].IsActivelyTrading = true;
+                            tradebots[i].Pair = indicator.Symbol;
+                            tradebots[i].DayHigh = indicator.DayHighPrice;
+                            tradebots[i].DayLow = indicator.DayLowPrice;
+                            tradebots[i].CreatedDate = DateTime.Now;
+                            tradebots[i].BuyPricePerCoin = indicator.CurrentPrice;
+                            tradebots[i].QuantityBought = tradebots[i].AvailableAmountForTrading / indicator.CurrentPrice;
+                            tradebots[i].BuyingCommision = tradebots[i].AvailableAmountForTrading * 0.075M / 100;
+                            tradebots[i].TotalBuyCost = tradebots[i].AvailableAmountForTrading + tradebots[i].BuyingCommision;
+
+                            tradebots[i].CurrentPricePerCoin = indicator.CurrentPrice;
+                            tradebots[i].TotalCurrentValue = tradebots[i].AvailableAmountForTrading;
+                            tradebots[i].TotalCurrentProfit = 0;
+                            tradebots[i].BuyTime = DateTime.Now;
+                            tradebots[i].AvailableAmountForTrading = 0;
                             indicator.IsPicked = true;
+                            // Update buy record, set it active, in live system, you will be issuing a buy order
                             // Update buy record, set it active, in live system, you will be issuing a buy order
                         }
                         else
@@ -694,31 +821,29 @@ namespace Trader.MVVM.View
                         }
                     }
                 }
-               
+
             }
 
             #endregion buying scan
+        }
 
-
-
+        private async Task PerformSells(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
+        {
+            DB TradeDB = new DB();
 
             #region selling scan
+            var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
 
-            //var DianaBots=tradebots.Where(x=>x.Name=="Diana").ToList();
-            //var ShatlinBots = tradebots.Where(x => x.Name == "Shatlin").OrderBy(x=>x.Order).ToList();
-            //var DamienBots = tradebots.Where(x => x.Name == "Damien").ToList();
-            //var PepperBots = tradebots.Where(x => x.Name == "Pepper").ToList();
-            //var EeveeBots = tradebots.Where(x => x.Name == "Eevee").ToList();
+            var botgroups = tradebots.OrderByDescending(x => x.Order).GroupBy(x => x.Name).ToList();
 
-            var botgroups= tradebots.OrderByDescending(x =>x.Order).GroupBy(x=>x.Name).ToList();
-
-            foreach(var botgroup in botgroups)
+            // see when a bot batch made more than 5 % profit. Later you can change these to be configurable.
+            foreach (var botgroup in botgroups)
             {
                 decimal? totalbuyingprice = 0;
-                decimal? totalcurrentprice=0;
-                
+                decimal? totalcurrentprice = 0;
+
                 foreach (var bot in botgroup)
-                { 
+                {
                     if (!bot.IsActivelyTrading) // not in trading, so cannot sell
                     {
                         continue;
@@ -728,35 +853,85 @@ namespace Trader.MVVM.View
                     // collect current price
                     // if the total current price gives you more than 4% profit sell it.
 
-                        decimal? BuyingCoinPrice = bot.BuyPricePerCoin;
-                        var CoinPair = bot.Pair;
-                        decimal quanitybought = Convert.ToDecimal(bot.QuantityBought);
-                        decimal? buyingcommision=bot.BuyingCommision;
+                    decimal? BuyingCoinPrice = bot.BuyPricePerCoin;
+                    var CoinPair = bot.Pair;
+                    decimal quanitybought = Convert.ToDecimal(bot.QuantityBought);
+                    decimal? buyingcommision = bot.BuyingCommision;
 
-                        totalbuyingprice += (BuyingCoinPrice*quanitybought + buyingcommision);
+                    totalbuyingprice += (BuyingCoinPrice * quanitybought + buyingcommision);
 
-                        foreach (var indicator in reorderedSignalIndicatorList)
+                    foreach (var indicator in SignalGeneratorList)
+                    {
+                        if (indicator.Symbol == CoinPair)
                         {
-                           if(indicator.Symbol==CoinPair)
-                           {
-                            var currentPrice=indicator.CurrentPrice;
-                            totalcurrentprice+=(indicator.CurrentPrice* quanitybought)+((indicator.CurrentPrice * quanitybought)*0.75M/100);
+                            var currentPrice = indicator.CurrentPrice;
+                            totalcurrentprice += (indicator.CurrentPrice * quanitybought) + ((indicator.CurrentPrice * quanitybought) * 0.075M / 100);
                             break;
-                           }
                         }
+                    }
                 }
 
-                var pricedifference= (totalcurrentprice- totalbuyingprice)/((totalcurrentprice + totalbuyingprice)/2)*100;
+                if (totalbuyingprice == 0) // no trades happening in the group, go the next bot group.
+                {
+                    continue;
+                }
 
-                if(pricedifference>5)
+                var pricedifference = (totalcurrentprice - totalbuyingprice) / ((totalcurrentprice + totalbuyingprice) / 2) * 100;
+
+                //Your total profit is more than 5%. Sell it and get ready to buy again.
+                if (pricedifference > 5)
                 {
                     foreach (var bot in botgroup)
                     {
-                        //Your total profit is more than 5%. Sell it and get ready to buy again.
-                                // update record fully.
-                                // create sell order (in live system)
-                                // copy the record to history
-                                // reset records to buy again
+                        var CoinPair = bot.Pair;
+                        var CoinIndicator = SignalGeneratorList.Where(x => x.Symbol == CoinPair).FirstOrDefault();
+                        bot.DayHigh = CoinIndicator.DayHighPrice;
+                        bot.DayLow = CoinIndicator.DayLowPrice;
+                        bot.CurrentPricePerCoin = CoinIndicator.CurrentPrice;
+                        bot.TotalCurrentValue = bot.CurrentPricePerCoin * bot.QuantityBought;
+                        bot.QuantitySold = Convert.ToDecimal(bot.QuantityBought);
+                        bot.SoldCommision = bot.CurrentPricePerCoin * bot.QuantityBought * 0.075M / 100;
+                        bot.TotalSoldAmount = bot.TotalCurrentValue - bot.SoldCommision;
+                        bot.AvailableAmountForTrading = bot.TotalSoldAmount;
+                        bot.TotalCurrentProfit = bot.TotalSoldAmount - bot.TotalBuyCost;
+                        bot.SellTime = DateTime.Now;
+                        bot.UpdatedTime = DateTime.Now;
+
+                        // create sell order (in live system)
+                        // copy the record to history
+
+                        TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bot);
+
+                        await TradeDB.TradeBotHistory.AddAsync(tradeBotHistory);
+
+
+                        // reset records to buy again
+
+                        bot.DayHigh = 0.0M;
+                        bot.DayLow = 0.0M;
+                        bot.Pair = string.Empty;
+                        bot.BuyPricePerCoin = 0.0M;
+                        bot.CurrentPricePerCoin = 0.0M;
+                        bot.QuantityBought = 0.0M;
+                        bot.TotalBuyCost = 0.0M;
+                        bot.TotalCurrentValue = 0.0M;
+                        bot.TotalSoldAmount = 0.0M;
+                        bot.BuyTime = null;
+                        bot.CreatedDate = null;
+                        bot.SellTime = null;
+                        bot.BuyingCommision = 0.0M;
+                        bot.SoldPricePricePerCoin = 0.0M;
+                        bot.TotalCurrentProfit = 0.0M;
+                        bot.QuantitySold = 0.0M;
+                        bot.SoldCommision = 0.0M;
+                        bot.TotalCurrentProfit = 0.0M;
+                        bot.IsActivelyTrading = false;
+
+                        TradeDB.TradeBot.Update(bot);
+                        await TradeDB.SaveChangesAsync();
+
+
+                        // update record fully.
 
                         // In the future write code to wait and see if the prices keep going up before selling abruptly.
                         //Only when you have made sufficiently sure that prices will not go higher, then sell them.
@@ -766,33 +941,53 @@ namespace Trader.MVVM.View
 
             }
 
-           
+
 
             #endregion selling scan
+        }
+
+        #region Algorithm
+
+        // take all bots one by one.
+        //if he is active -ingore ( for now)
+        // take the successor who is not active
+        //take the coin with biggest trades happening, who has dropped to the expectation of that bot
+        // suppose  the predecessor was ADA and was bought two days back with value 1.5, now you can buy ADA if its value is 5% down to the previous one
+        // now look at the price of the new coin you are going to buy at the time ADA was bought and compare that to the current price.
+        //if that price is also 5% less and the coin is a better buy than ADA, buy that coin.
+
+        // for the next coin, select the next coin in the list and repeat the same.
 
 
-            // take all bots one by one.
-            //if he is active -ingore ( for now)
-            // take the successor who is not active
-            //take the coin with biggest trades happening, who has dropped to the expectation of that bot
-            // suppose  the predecessor was ADA and was bought two days back with value 1.5, now you can buy ADA if its value is 5% down to the previous one
-            // now look at the price of the new coin you are going to buy at the time ADA was bought and compare that to the current price.
-            //if that price is also 5% less and the coin is a better buy than ADA, buy that coin.
+        // For the second set, prefer different set of coins.
 
-            // for the next coin, select the next coin in the list and repeat the same.
+        // Create Trade mini bots that each group will handle 1/5th of the investment.
+        // Each mini bot will have 5 avatars that will wait for the right time to buy or sell.
+        // 1st bot will start the buying and waiting to make a profit. If Market is going down, based on the rules set second will jump to buy at a lower price
 
+        //  Sell all of batch when your profit goes 5% overall and then start again.
 
-            // For the second set, prefer different set of coins.
+        #endregion
 
-            #endregion trade
+        private async Task Trade()
+        {
+            DB TradeDB = new DB();
 
-            // Create Trade mini bots that each group will handle 1/5th of the investment.
-            // Each mini bot will have 5 avatars that will wait for the right time to buy or sell.
-            // 1st bot will start the buying and waiting to make a profit. If Market is going down, based on the rules set second will jump to buy at a lower price
+            List<SignalIndicator> signalIndicators = new List<SignalIndicator>();
+            Counter counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
 
-            //  Sell all of batch when your profit goes 5% overall and then start again.
+            // int currentCandleSet = (counter.CandleCurrentSet - 1);  //PROD
 
+            int currentCandleSet = 200; //Back Testing
 
+            while (currentCandleSet < (counter.CandleCurrentSet - 10))
+            {
+
+                var SignalGeneratorList = await GetSignalIndicators(currentCandleSet);
+                await PerformBuys(SignalGeneratorList);
+                await PerformSells(SignalGeneratorList);
+                currentCandleSet += 1;
+            }
             string test = string.Empty;
         }
 
