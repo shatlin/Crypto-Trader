@@ -1,12 +1,5 @@
 ﻿
-using System.Collections.Generic;
-using System.Windows.Controls;
-using System.Windows.Threading;
-using System;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
+using AutoMapper;
 using BinanceExchange.API;
 using BinanceExchange.API.Client;
 using BinanceExchange.API.Client.Interfaces;
@@ -14,17 +7,23 @@ using BinanceExchange.API.Enums;
 using BinanceExchange.API.Market;
 using BinanceExchange.API.Models.Request;
 using BinanceExchange.API.Models.Response;
-using BinanceExchange.API.Models.Response.Error;
 using BinanceExchange.API.Models.WebSocket;
 using BinanceExchange.API.Utility;
 using BinanceExchange.API.Websockets;
 using log4net;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
 using Trader.Models;
 using WebSocketSharp;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using AutoMapper;
 
 namespace Trader.MVVM.View
 {
@@ -539,11 +538,11 @@ namespace Trader.MVVM.View
             await Trade();
         }
 
-        private async void btnClearRobot_Click(object sender, RoutedEventArgs e)
+
+        private async Task ClearData()
         {
             DB TradeDB = new DB();
 
-            #region clear data for testing
 
             var bots = await TradeDB.TradeBot.ToListAsync();
 
@@ -573,75 +572,206 @@ namespace Trader.MVVM.View
                 TradeDB.Update(bot);
             }
             await TradeDB.SaveChangesAsync();
+        }
+        private async void btnClearRobot_Click(object sender, RoutedEventArgs e)
+        {
+          
+            await ClearData();
 
-            #endregion
+           
+        }
+
+        private async void btnCollectData_Click(object sender, RoutedEventArgs e)
+        {
+            //List<Candle> candles = new List<Candle>();
+
+            //logger.Info("Getting Candle Started at " + DateTime.Now);
+
+            //DB candledb = new DB();
+
+            //var files = Directory.EnumerateFiles(@"C:\Shatlin\klines\csv", "*.csv");
+            //var epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+
+            //foreach (string file in files)
+            //{
+
+            //    string filename=file.Split('-')[0];
+            //    filename=filename.Substring(filename.LastIndexOf("\\")+1);
+            //    using (var reader = new StreamReader(file))
+            //    {
+            //        while (!reader.EndOfStream)
+            //        {
+            //            string line = reader.ReadLine();
+            //            string[] values = line.Split(",");
+            //            Candle candle = new Candle();
+            //            candle.Symbol = filename;
+            //            double d = Convert.ToDouble(values[0].ToString());
+
+            //            candle.RecordedTime = Convert.ToDateTime(epoch.AddMilliseconds(d)); 
+            //            candle.OpenTime = Convert.ToDateTime(epoch.AddMilliseconds(Convert.ToDouble(values[0])));
+            //            candle.Open = Convert.ToDecimal(values[1]);
+            //            candle.High = Convert.ToDecimal(values[2]);
+            //            candle.Low = Convert.ToDecimal(values[3]);
+            //            candle.Close = Convert.ToDecimal(values[4]);
+            //            candle.Volume = Convert.ToDecimal(values[5]);
+            //            candle.CloseTime = Convert.ToDateTime(epoch.AddMilliseconds(Convert.ToDouble(values[6])));
+            //            candle.QuoteAssetVolume = Convert.ToDecimal(values[7]);
+            //            candle.NumberOfTrades = Convert.ToInt32(values[8]);
+            //            candle.TakerBuyBaseAssetVolume = Convert.ToDecimal(values[9]);
+            //            candle.TakerBuyQuoteAssetVolume = Convert.ToDecimal(values[10]);
+            //            candle.Change = 0.0M;
+            //            candle.PriceChangePercent = 0.0M;
+            //            candle.WeightedAveragePercent = 0.0M;
+            //            candle.PreviousClosePrice = 0.0M;
+            //            candle.CurrentPrice = 0.0M;
+            //            candle.OpenPrice = 0.0M;
+            //            candle.DayHighPrice = 0.0M;
+            //            candle.DayLowPrice = 0.0M;
+            //            candle.DayVolume = 0.0M;
+            //            candle.DayTradeCount = 0;
+            //            candle.DataSet = 0;
+            //            await candledb.AddAsync(candle);
+            //        }
+            //    }
+            //    await candledb.SaveChangesAsync();
+
+            //}
+
+            await UpdateData();
         }
 
 
-        private async Task<IOrderedEnumerable<SignalIndicator>> GetSignalIndicators(int currentCandleSet)
+        private async Task UpdateData()
+        {
+            DateTime currentdate = new DateTime(2021, 3, 1);
+            DateTime lastdate = new DateTime(2021, 6, 9);
+            List<Candle> selectedCandles;
+
+            DB TradeDB = new DB();
+
+            List<MyTradeFavouredCoins> myTradeFavouredCoins = await TradeDB.MyTradeFavouredCoins.OrderBy(x => x.PreferenceOrder).AsNoTracking().ToListAsync();
+
+            while (currentdate < lastdate)
+            {
+
+                foreach (var favtrade in myTradeFavouredCoins)
+                {
+
+                    try
+                    {
+                        selectedCandles = await TradeDB.Candle.Where(x => x.Symbol.Contains(favtrade.Pair) && x.OpenTime.Date == currentdate).ToListAsync();
+
+                        if (selectedCandles == null || selectedCandles.Count == 0)
+                        {
+                            continue;
+                        }
+                        var dayhigh = selectedCandles.Max(x => x.High);
+                        var daylow = selectedCandles.Min(x => x.Low);
+
+                        List<decimal> randomcurrentPrice = new List<decimal>();
+
+                        randomcurrentPrice.Add(daylow);
+                        randomcurrentPrice.Add(dayhigh);
+
+                        Random rand = new Random();
+                        int randomNum = 0;
+                        int randomNum2 = 0;
+
+                        for (int i = 0; i < selectedCandles.Count - 2; i++)
+                        {
+                            randomNum = rand.Next(0, randomcurrentPrice.Count());
+                            randomNum2 = rand.Next(0, randomcurrentPrice.Count());
+                            decimal random = (randomcurrentPrice[randomNum] + randomcurrentPrice[randomNum2]) / 2;
+                            randomcurrentPrice.Add(random);
+                        }
+
+                        foreach (var candle in selectedCandles)
+                        {
+                            randomNum = rand.Next(0, randomcurrentPrice.Count());
+
+                            candle.CurrentPrice = randomcurrentPrice[randomNum];
+                            candle.DayHighPrice = selectedCandles.Max(x => x.High);
+                            candle.DayLowPrice = selectedCandles.Min(x => x.Low);
+                            candle.DayVolume = selectedCandles.Sum(x => x.Volume);
+                            candle.DayTradeCount = selectedCandles.Sum(x => x.NumberOfTrades);
+                            TradeDB.Candle.Update(candle);
+                        }
+
+                        await TradeDB.SaveChangesAsync();
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+                }
+
+                currentdate = currentdate.AddDays(1);
+            }
+
+
+        }
+
+
+        private async Task<IOrderedEnumerable<SignalIndicator>> GetSignalIndicators(DateTime currentCandleSetDate)
         {
 
-            logger.Info("Signal Indicator Generation Started with candle set " + currentCandleSet);
+            //logger.Info("Signal Indicator Generation Started with candle set " + currentCandleSetDate);
 
+            if (currentCandleSetDate == new DateTime(2021, 3, 2, 8, 0, 0))
+            {
+
+            }
 
             DB TradeDB = new DB();
 
             List<SignalIndicator> signalIndicators = new List<SignalIndicator>();
-            Counter counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
 
             List<MyTradeFavouredCoins> myTradeFavouredCoins = await TradeDB.MyTradeFavouredCoins.OrderBy(x => x.PreferenceOrder).AsNoTracking().ToListAsync();
 
 
+            List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.OpenTime == currentCandleSetDate).ToListAsync();
+
+            DateTime referencecandleminimumtime = currentCandleSetDate.AddHours(-23);
 
 
+            //logger.Info("Total Latest Candles= " + latestCandles.Count());
 
-
-            int refenceCandleCount = currentCandleSet - 12;
-
-            logger.Info("Reference set is from " + refenceCandleCount + " to " + (currentCandleSet - 1));
-
-
-            List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet == (currentCandleSet)).ToListAsync();
-
-            logger.Info("Total Latest Candles= " + latestCandles.Count());
-
-
-            logger.Info("Reference set is from " + refenceCandleCount + " to " + (currentCandleSet - 1));
+            //logger.Info("Reference set is from " + referencecandleminimumtime + " to " + currentCandleSetDate.AddHours(-1));
 
             //In Prod, get the latest candles from binance then go to remaining.
 
-            List<Candle> ReferenceCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.DataSet >= refenceCandleCount && x.DataSet < currentCandleSet).ToListAsync();
+            List<Candle> ReferenceCandles = await TradeDB.Candle.AsNoTracking()
+                .Where(x => x.OpenTime >= referencecandleminimumtime && x.OpenTime < currentCandleSetDate).ToListAsync();
 
-            logger.Info("Total Reference Candles= " + ReferenceCandles.Count());
-
-
+            //logger.Info("Total Reference Candles= " + ReferenceCandles.Count());
             // List<SymbolPriceResponse> prices = await client.GetAllPrices();
 #if !DEBUG
           //  List<Balance> currentBalance = await UpdateBalance(prices);
 #endif
 
 
-            logger.Info("Looping through favorite coins to generate signals");
+            //logger.Info("Starting to Loop through favorite coins to generate signals");
 
             foreach (var myfavcoin in myTradeFavouredCoins)
             {
 
                 List<string> allusdcombinations = new List<string>() { myfavcoin.Pair + "USDT", myfavcoin.Pair + "BUSD", myfavcoin.Pair + "USDC" };
 
+                if (myfavcoin.Pair == "BADGER")
+                {
+
+                }
+
                 var usdCandleList = latestCandles.Where(x => allusdcombinations.Contains(x.Symbol));
-
-
-
 
                 if (usdCandleList == null)
                 {
-
-                    logger.Info("No USD Entries found in candles for " + myfavcoin.Pair + "Continuing to next coin");
-
+                    //logger.Info("No USD Entries found in candles for " + myfavcoin.Pair + "Continuing to next coin");
                     continue;
                 }
 
-                logger.Info(usdCandleList + " Entries found for " + myfavcoin.Pair + ". Creating signals ");
+                //logger.Info(usdCandleList.Count() + " USD Entries found for " + myfavcoin.Pair + ". Creating signals ");
 
                 #region signalIndicators
 
@@ -653,12 +783,12 @@ namespace Trader.MVVM.View
                 if (busdcandle != null)
                 {
 
-                    logger.Info("BUSD Found for " + myfavcoin.Pair + " Using BUSD");
+                    ////logger.Info("BUSD Found for " + myfavcoin.Pair + " Using BUSD");
                     sInd.Symbol = busdcandle.Symbol;
                 }
                 else
                 {
-                    logger.Info("BUSD not found for " + myfavcoin.Pair + " Using USDT");
+                    ////logger.Info("BUSD not found for " + myfavcoin.Pair + " Using USDT");
                     sInd.Symbol = myfavcoin.Pair + "USDT";
                 }
 
@@ -668,36 +798,47 @@ namespace Trader.MVVM.View
                 var selectedfavcoincandle = usdCandleList.Where(x => x.Symbol == sInd.Symbol).FirstOrDefault();
 
 
-                // get the data from selectedfav coin
+                if (selectedfavcoincandle == null)
+                {
+
+                    //logger.Info("No BUSD,USDT or USDC pairs found for  " + myfavcoin.Pair + " Continuing to next fav icon to generate signals");
+                    continue;
+                }
+
+                // get the data from selectedfav coin [PROD]
+                //sInd.CurrentPrice = selectedfavcoincandle.CurrentPrice;
+                //sInd.DayHighPrice = selectedfavcoincandle.DayHighPrice;
+                //sInd.DayLowPrice = selectedfavcoincandle.DayLowPrice;
+
+
+                // get the data from selectedfav coin [For testing
+
+
                 sInd.CurrentPrice = selectedfavcoincandle.CurrentPrice;
                 sInd.DayHighPrice = selectedfavcoincandle.DayHighPrice;
                 sInd.DayLowPrice = selectedfavcoincandle.DayLowPrice;
-
-
+                sInd.CandleOpenTime= selectedfavcoincandle.OpenTime;
 
                 //myfavcoinCandleList the list of records for the same coin in USDT,BUSD and USDC. Get some of these for indicator.
                 sInd.DayVolume = usdCandleList.Sum(x => x.DayVolume);
                 sInd.DayTradeCount = usdCandleList.Sum(x => x.DayTradeCount);
 
-                
+
                 //  var refcans = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol));
 
-                sInd.ReferenceSetHighPrice =
-                    ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Max(x => x.CurrentPrice);
-                sInd.ReferenceSetLowPrice =
-                    ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Min(x => x.CurrentPrice);
-                sInd.ReferenceSetAverageCurrentPrice =
-                    ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Average(x => x.CurrentPrice);
-                sInd.ReferenceSetDayVolume =
-                    ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Average(x => x.DayVolume);
+                var allrefswithUsdComboinations = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol));
+                if (allrefswithUsdComboinations == null || allrefswithUsdComboinations.Count() == 0)
+                {
 
-                sInd.ReferenceSetDayTradeCount =
-                    (int)ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol)).Average(x => x.DayTradeCount);
+                    //logger.Info("No BUSD,USDT or USDC pairs found for  " + myfavcoin.Pair + " in allrefswithUsdComboinations . Continuing to next fav icon to generate signals ");
+                    continue;
+                }
 
-
-               
-
-                
+                sInd.ReferenceSetHighPrice = allrefswithUsdComboinations.Max(x => x.CurrentPrice);
+                sInd.ReferenceSetLowPrice = allrefswithUsdComboinations.Min(x => x.CurrentPrice);
+                sInd.ReferenceSetAverageCurrentPrice = allrefswithUsdComboinations.Average(x => x.CurrentPrice);
+                sInd.ReferenceSetDayVolume = allrefswithUsdComboinations.Average(x => x.DayVolume);
+                sInd.ReferenceSetDayTradeCount = (int)allrefswithUsdComboinations.Average(x => x.DayTradeCount);
 
                 sInd.DayPriceDifferencePercentage =
                      ((sInd.DayHighPrice - sInd.DayLowPrice) /
@@ -720,31 +861,38 @@ namespace Trader.MVVM.View
                     sInd.IsCloseToDayHigh = true;
                 }
 
-                logger.Info("Signal :" + selectedfavcoincandle.Symbol + "  CurrentPrice: " + sInd.CurrentPrice +
-                  "  DayHighPrice: " + sInd.DayHighPrice +
-                   "  DayLowPrice: " + sInd.DayLowPrice +
-                     "  DayVolume: " + sInd.DayVolume +
-                       "  DayTradeCount: " + sInd.DayTradeCount +
-                       "Price Difference Between high and low " + sInd.DayPriceDifferencePercentage +
-                       "Price Difference Close to Day Low? " + sInd.IsCloseToDayLow +
-                       "Price Difference Close to Day High? " + sInd.IsCloseToDayHigh
-                  );
+                //logger.Info(selectedfavcoincandle.Symbol + "  CurrentPrice: " + Math.Round(sInd.CurrentPrice, 6) +
+                  //" DayHighPrice: " + Math.Round(sInd.DayHighPrice, 6) +
+                  // " DayLowPrice: " + Math.Round(sInd.DayLowPrice, 6) +
+                  //   " DayVolume: " + Math.Round(sInd.DayVolume, 6) +
+                  //     " DayTradeCount: " + sInd.DayTradeCount
 
-                logger.Info("Reference Set :" + selectedfavcoincandle.Symbol +
-                "  Max of Current Price: " + sInd.ReferenceSetHighPrice +
-                 "  Min of Current Price: " + sInd.ReferenceSetLowPrice +
-                   "  Average Current Price: " + sInd.ReferenceSetAverageCurrentPrice +
-                     "Average  DayVolume: " + sInd.ReferenceSetDayVolume +
-                     "Average  DayTradeCount: " + sInd.ReferenceSetDayVolume
+                  //);
 
-                );
+
+                //logger.Info(
+                //    "Reference Set : " + selectedfavcoincandle.Symbol +
+                // " Max  Price: " + Math.Round(sInd.ReferenceSetHighPrice, 6) +
+                // " Min  Price: " + Math.Round(sInd.ReferenceSetLowPrice, 6) +
+                // " Avg  Price: " + Math.Round(sInd.ReferenceSetAverageCurrentPrice, 6)
+                // +
+                //" DayVolume: " + Math.Round(sInd.ReferenceSetDayVolume, 6)
+                //  +" DayTradeCount: " + Math.Round(sInd.ReferenceSetDayVolume, 6)
+                //  );
+
+                //logger.Info(
+               //     "Price Diff % : high & low " + Math.Round(sInd.DayPriceDifferencePercentage, 6) +
+               //     " Price Close to Day Low? " +sInd.IsCloseToDayLow +
+               //     " Price Close to Day High? " + sInd.IsCloseToDayHigh
+               //);
+
 
                 signalIndicators.Add(sInd);
             }
 
             var reorderedSignalIndicatorList = signalIndicators.OrderByDescending(x => x.ReferenceSetDayTradeCount);
 
-            logger.Info("Signal Indicator Generation Completed");
+            //logger.Info("Signal Indicator Generation Completed");
 
             return reorderedSignalIndicatorList;
 
@@ -754,31 +902,47 @@ namespace Trader.MVVM.View
 
         private async Task PerformBuys(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
         {
+
+            logger.Info("Perform  Buys Started");
             DB TradeDB = new DB();
 
             var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
 
             #region buying scan
 
-            var alreadyboughtCoins = tradebots.Where(x => x.Pair != null).Select(x => x.Pair);
+            List<string> alreadyboughtCoins = tradebots.Where(x => x.Pair != null).Select(x => x.Pair).ToList();
 
             for (int i = 0; i < tradebots.Count(); i++)
             {
                 if (tradebots[i].IsActivelyTrading) //trading, go to the next one
                 {
+                    logger.Info(tradebots[i].Name + " " + tradebots[i].Avatar + " is actively trading with " + tradebots[i].Pair + " so going to the next bot");
                     continue;
                 }
                 if (tradebots[i].Order == 1)
                 {
-                    // first bot in the group and not actively trading, so no refence amounts to trade with,
-                    //this bot will scan the market condition for a favorable buy.
-                    //In the future, it should actively try to buy when the price of the coin is at its lowest.
+                    logger.Info(tradebots[i].Name + " " + tradebots[i].Avatar + " is firt bot in the list and not actively trading so no refence amounts to trade with,this bot will scan the market condition for a favorable buy, lowest amount for the day");
+
+                    logger.Info(tradebots[i].Name + " " + tradebots[i].Avatar + " Starting to go through signals");
 
                     foreach (var indicator in SignalGeneratorList)
                     {
-                        if (indicator.IsPicked) continue;
+                        logger.Info("Assessing signals for " + indicator.Symbol + " to see if its buyable ");
+
+                        if (indicator.IsPicked)
+                        {
+                            logger.Info(indicator.Symbol + " is picked up by another bot, so not buying the same coin.Continuing to next one");
+                            continue;
+                        }
+
+                        if (indicator.IsIgnored)
+                        {
+                            logger.Info(indicator.Symbol + " is already ignored, so not attempting the same coin.Continuing to next one");
+                            continue;
+                        }
                         if (alreadyboughtCoins.Contains(indicator.Symbol))
                         {
+                            logger.Info(indicator.Symbol + " is already in trading in another bot, so not buying it. Continuing to next one");
                             continue;
                         }
                         var indicatorcurrentprice = indicator.CurrentPrice;
@@ -788,11 +952,19 @@ namespace Trader.MVVM.View
                         var pricedifferencepercentage = (indicatorcurrentprice - indicatoroldprice) /
                         ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
 
+                        logger.Info(indicator.Symbol +
+                            " Current Price " + Math.Round(indicator.CurrentPrice, 6) +
+                            " Ref Set Price " + Math.Round(indicatoroldprice, 6) +
+                            " price diff % betn curr & ref " + Math.Round(pricedifferencepercentage, 6) +
+                            " Bot config:  " + Math.Round(Convert.ToDecimal(tradebots[i].BuyWhenValuePercentageIsBelow), 2));
                         if (
                             pricedifferencepercentage < 0 &&
                             Math.Abs(pricedifferencepercentage) > tradebots[i].BuyWhenValuePercentageIsBelow
                             )
                         {
+                            logger.Info(indicator.Symbol + 
+                                " price diff % betn curr & ref " + Math.Round(pricedifferencepercentage, 6) + ". Its Good. Buying ");
+
                             tradebots[i].IsActivelyTrading = true;
                             tradebots[i].Pair = indicator.Symbol;
                             tradebots[i].DayHigh = indicator.DayHighPrice;
@@ -807,57 +979,107 @@ namespace Trader.MVVM.View
                             tradebots[i].TotalCurrentProfit = 0;
                             tradebots[i].BuyTime = DateTime.Now;
                             tradebots[i].AvailableAmountForTrading = 0;
+                            tradebots[i].CandleOpenTime = indicator.CandleOpenTime;
                             TradeDB.TradeBot.Update(tradebots[i]);
 
-                            await TradeDB.SaveChangesAsync();
-                            indicator.IsPicked = true;
+                            logger.Info(indicator.Symbol +
+                               " Bought for a total cost of : " + Math.Round(Convert.ToDecimal(tradebots[i].TotalBuyCost), 6) +
+                               " Bought Quantity " + tradebots[i].QuantityBought +
+                               " Coin Price" + Math.Round(Convert.ToDecimal(tradebots[i].BuyPricePerCoin), 6));
+                                    await TradeDB.SaveChangesAsync();
+                                    indicator.IsPicked = true;
                             // Update buy record, set it active, in live system, you will be issuing a buy order
+
+                            while ((i + 3) < tradebots.Count() && tradebots[i + 2].Order == 1)
+                            {
+                                i++;
+                            }
+
+                            alreadyboughtCoins.Add(indicator.Symbol);
+
+                            break;
                         }
                         else
                         {
+                            logger.Info(indicator.Symbol +
+                                  " price diff % betn curr & ref set " + Math.Round(pricedifferencepercentage, 6) +
+                                  ". Not Good. Not Buying ");
+                            indicator.IsIgnored=true;
                             continue;
                         }
                     }
                 }
                 else
                 {
-                    //not the first bot, so the previous bot will be actively trading. The lower ones are support bots, buy only when the current prices are so much lower than the first bot
+
+                    logger.Info(tradebots[i].Name + " " + tradebots[i].Avatar + " not the first bot, so the previous bot will be actively trading. The lower ones are support bots, buy only when the current prices are so much lower than the first bot ");
 
                     var previousCoinPrice = tradebots[i - 1].BuyPricePerCoin;
                     var previousCoinPair = tradebots[i - 1].Pair;
-                    DateTime PreviousCoinBuyTime = Convert.ToDateTime(tradebots[i - 1].BuyTime);
+
+                    logger.Info("previous bot's Coin Price " + previousCoinPrice +
+                        " previous bot's Coin Pair " + previousCoinPair);
+
+                    DateTime PreviousCoinBuyTime = Convert.ToDateTime(tradebots[i - 1].CandleOpenTime);
 
                     foreach (var indicator in SignalGeneratorList)
                     {
-                        if (indicator.IsPicked) continue;
+                        if (indicator.IsPicked)
+                        {
+                            logger.Info(indicator.Symbol + " is picked up by another bot, so not buying the same coin.Continuing to next one");
+                            continue;
+                        }
+
+                        if (indicator.IsIgnored)
+                        {
+                            logger.Info(indicator.Symbol + " is already ignored, so not attempting the same coin.Continuing to next one");
+                            continue;
+                        }
+                        
+                        if (alreadyboughtCoins.Contains(indicator.Symbol))
+                        {
+                            logger.Info(indicator.Symbol + " is already in trading in another bot, so not buying it. Continuing to next one");
+                            continue;
+                        }
+
                         var indicatorcurrentprice = indicator.CurrentPrice;
                         var indicatorSymbol = indicator.Symbol;
 
-                        var closestcandles = await TradeDB.Candle.Where(
+                        logger.Info(indicator.Symbol + " current Price is " + indicatorcurrentprice);
+
+                        logger.Info(indicator.Symbol + " Looking at the current sginal indicator coin's price when the previous bot's coin was bought ");
+
+                        var selectedCandle = await TradeDB.Candle.Where(
                             x => x.Symbol == indicator.Symbol &&
-                            x.RecordedTime.Date == PreviousCoinBuyTime.Date &&
-                            x.RecordedTime.Hour == PreviousCoinBuyTime.Hour
-                            ).ToListAsync();
+                            x.RecordedTime == PreviousCoinBuyTime
+                            ).FirstOrDefaultAsync();
 
-                        long min = long.MaxValue;
-
-                        Candle selectedCandle = new Candle();
-
-                        foreach (var candidatecandle in closestcandles)
+                        if(selectedCandle==null)
                         {
-                            if (Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks) < min)
-                            {
-                                min = Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks);
-                                selectedCandle = candidatecandle;
-                            }
+                            continue;
                         }
-                        var indicatoroldprice = selectedCandle.CurrentPrice; //[TO DO] - Relook at this line
 
-                        var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
+                        var indicatoroldprice = selectedCandle.CurrentPrice;
 
-                        if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
+                        logger.Info(indicator.Symbol + " found the closest Candle at " + selectedCandle.OpenTime +
+                            " The old price " + indicatoroldprice);
+
+                        var pricedifferencepercentage = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
+
+                        logger.Info(indicator.Symbol + " Price diff at time " + selectedCandle.OpenTime +
+                              " Current Price " + indicatorcurrentprice +
+                              " The old price " + indicatoroldprice);
+
+                        logger.Info(indicator.Symbol +
+                          " price diff % betn curr & old " + pricedifferencepercentage +
+                          " Bot config:  " + tradebots[i].BuyWhenValuePercentageIsBelow);
+
+                        if (pricedifferencepercentage < 0 && Math.Abs(pricedifferencepercentage) > tradebots[i].BuyWhenValuePercentageIsBelow)
                         {
-                            //buy
+                            logger.Info(indicator.Symbol +
+                         " price diff % betn curr & ref " + Math.Round(pricedifferencepercentage, 6) +
+                         " .Good. Buying ");
+
                             tradebots[i].IsActivelyTrading = true;
                             tradebots[i].Pair = indicator.Symbol;
                             tradebots[i].DayHigh = indicator.DayHighPrice;
@@ -867,18 +1089,40 @@ namespace Trader.MVVM.View
                             tradebots[i].QuantityBought = tradebots[i].AvailableAmountForTrading / indicator.CurrentPrice;
                             tradebots[i].BuyingCommision = tradebots[i].AvailableAmountForTrading * 0.075M / 100;
                             tradebots[i].TotalBuyCost = tradebots[i].AvailableAmountForTrading + tradebots[i].BuyingCommision;
-
                             tradebots[i].CurrentPricePerCoin = indicator.CurrentPrice;
                             tradebots[i].TotalCurrentValue = tradebots[i].AvailableAmountForTrading;
                             tradebots[i].TotalCurrentProfit = 0;
                             tradebots[i].BuyTime = DateTime.Now;
                             tradebots[i].AvailableAmountForTrading = 0;
+                            tradebots[i].CandleOpenTime = indicator.CandleOpenTime;
+                            TradeDB.TradeBot.Update(tradebots[i]);
+
+                            logger.Info(indicator.Symbol +
+                       " Bought for a total cost of : " + Math.Round(Convert.ToDecimal(tradebots[i].TotalBuyCost), 6) +
+                       " Bought Quantity " + tradebots[i].QuantityBought +
+                       " Coin Price" + Math.Round(Convert.ToDecimal(tradebots[i].BuyPricePerCoin), 6));
+                            await TradeDB.SaveChangesAsync();
                             indicator.IsPicked = true;
-                            // Update buy record, set it active, in live system, you will be issuing a buy order
+
+                            alreadyboughtCoins.Add(indicator.Symbol);
+
+                            while ((i + 3) < tradebots.Count() && tradebots[i + 2].Order == 1)
+                            {
+                                i++;
+                            }
+
+
+                            break;
+
                             // Update buy record, set it active, in live system, you will be issuing a buy order
                         }
                         else
                         {
+
+                            logger.Info(indicator.Symbol +
+                                  " price diff % betn curr & ref " + Math.Round(pricedifferencepercentage, 6) +
+                                  " .Not Good. Not Buying ");
+                            indicator.IsIgnored = true;
                             continue;
                         }
                     }
@@ -887,6 +1131,8 @@ namespace Trader.MVVM.View
             }
 
             #endregion buying scan
+
+            logger.Info("Perform  Buys Completed");
         }
 
         private async Task PerformSells(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
@@ -1037,40 +1283,44 @@ namespace Trader.MVVM.View
             // if candles are being updated, wait till they complete.
             //Or if the candles are going to be updated soon, wait for that
 
+            await ClearData();
             DB TradeDB = new DB();
 
             List<SignalIndicator> signalIndicators = new List<SignalIndicator>();
             Counter counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
 
-            while(counter.IsCandleCurrentlyBeingUpdated)
-            {
-                Thread.Sleep(10000);
-                counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
-            }
+            //while(counter.IsCandleCurrentlyBeingUpdated)
+            //{
+            //    Thread.Sleep(10000);
+            //    counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
+            //}
 
-            var minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
+            //var minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
 
-            if (minutedifference >12)
-            {
-                Thread.Sleep(10000);
-                counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
-                minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
-                logger.Info(" Candle retrieved only " + minutedifference + " minutes back. Dont need to get again");
-               
-            }
+            //if (minutedifference >12)
+            //{
+            //    Thread.Sleep(10000);
+            //    counter = await TradeDB.Counter.AsNoTracking().FirstOrDefaultAsync();
+            //    minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
+            //    logger.Info(" Candle retrieved only " + minutedifference + " minutes back. Dont need to get again");
+
+            //}
 
             // int currentCandleSet = (counter.CandleCurrentSet - 1);  //PROD
 
-            int currentCandleSet = 3; //Back Testing
+            DateTime latestcandledate = TradeDB.Candle.AsNoTracking().Max(x => x.OpenTime); // for prod
+            DateTime startingcandledate = new DateTime(2021, 3, 1, 23, 0, 0);
 
-            while (currentCandleSet < (counter.CandleCurrentSet))
+            // 2021-06-08 23:00:00.0000000
+
+            while (startingcandledate < latestcandledate)
             {
-                var SignalGeneratorList = await GetSignalIndicators(currentCandleSet);
+                var SignalGeneratorList = await GetSignalIndicators(startingcandledate);
                 await PerformBuys(SignalGeneratorList);
-                await PerformSells(SignalGeneratorList);
-                currentCandleSet += 1;
+                // await PerformSells(SignalGeneratorList);
+                startingcandledate = startingcandledate.AddHours(1);
             }
-            string test = string.Empty;
+
         }
 
         #region Unused Methods

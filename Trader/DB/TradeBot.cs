@@ -61,6 +61,8 @@ namespace BinanceExchange.API.Models.Response
 
         public DateTime? UpdatedTime { get; set; }
 
+        public DateTime? CandleOpenTime { get; set; }
+
     }
 
     public partial class TradeBotConfiguration : IEntityTypeConfiguration<TradeBot>

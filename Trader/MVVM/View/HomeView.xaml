@@ -48,7 +48,10 @@
                 <DataGridTextColumn Header="Locked" Binding="{Binding Locked, StringFormat=N0}"/>
             </DataGrid.Columns>
         </DataGrid>
-        <Button x:Name="btnClearRobot" Click="btnClearRobot_Click"  Content="Clear Bot Data" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13" Grid.Row="2" Grid.Column="5"
+        <Button x:Name="btnClearRobot" Click="btnClearRobot_Click"  Content="Clear Bot Data" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13" Grid.Row="2" Grid.Column="1"
+           HorizontalAlignment="Right"  Margin="0,0,10,0" Style="{StaticResource ButtonTheme}"   />
+
+        <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top" Width="122"  FontFamily="/Fonts/#Poppins" Height="30" FontSize="13" Grid.Row="2" Grid.Column="2"
            HorizontalAlignment="Right"  Margin="0,0,10,0" Style="{StaticResource ButtonTheme}"   />
     </Grid>
 

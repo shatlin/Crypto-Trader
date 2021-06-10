@@ -58,6 +58,8 @@ namespace BinanceExchange.API.Models.Response
         public decimal QuantitySold { get; set; }
         public decimal? SoldCommision { get; set; }
         public decimal? TotalSoldAmount { get; set; }
+
+        public DateTime? CandleOpenTime { get; set; }
     }
 
     public partial class TradeBotHistoryConfiguration : IEntityTypeConfiguration<TradeBotHistory>
