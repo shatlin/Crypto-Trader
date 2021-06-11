@@ -23,6 +23,8 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? DayLow { get; set; }
 
+        public string BuyOrSell { get; set; }
+
         public decimal? BuyWhenValuePercentageIsBelow { get; set; }
 
         public decimal? SellWhenProfitPercentageIsAbove { get; set; }
@@ -58,14 +60,16 @@ namespace BinanceExchange.API.Models.Response
         public decimal QuantitySold { get; set; }
         public decimal? SoldCommision { get; set; }
         public decimal? TotalSoldAmount { get; set; }
-
-        public DateTime? CandleOpenTime { get; set; }
+        public DateTime? CandleOpenTimeAtBuy { get; set; }
+        public DateTime? CandleOpenTimeAtSell { get; set; }
     }
 
     public partial class TradeBotHistoryConfiguration : IEntityTypeConfiguration<TradeBotHistory>
     {
         public void Configure(EntityTypeBuilder<TradeBotHistory> builder)
         {
+
+            builder.Property(e => e.BuyOrSell).IsRequired(false);
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.DayLow).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.BuyWhenValuePercentageIsBelow).IsRequired().HasColumnType("decimal(30, 12)");

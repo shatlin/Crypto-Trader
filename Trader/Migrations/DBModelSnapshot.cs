@@ -119,9 +119,6 @@ namespace Trader.Migrations
                     b.Property<decimal>("QuoteAssetVolume")
                         .HasColumnType("decimal(23,4)");
 
-                    b.Property<DateTime>("RecordedTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Symbol")
                         .HasColumnType("nvarchar(max)");
 
@@ -203,9 +200,6 @@ namespace Trader.Migrations
                     b.Property<decimal>("QuoteAssetVolume")
                         .HasColumnType("decimal(23,4)");
 
-                    b.Property<DateTime>("RecordedTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Symbol")
                         .HasColumnType("nvarchar(max)");
 
@@ -285,6 +279,9 @@ namespace Trader.Migrations
                     b.Property<string>("Avatar")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("BuyOrSell")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("BuyPricePerCoin")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -300,7 +297,10 @@ namespace Trader.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<DateTime?>("CandleOpenTime")
+                    b.Property<DateTime?>("CandleOpenTimeAtBuy")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CandleOpenTimeAtSell")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CreatedDate")
@@ -392,6 +392,9 @@ namespace Trader.Migrations
                     b.Property<string>("Avatar")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("BuyOrSell")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("BuyPricePerCoin")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -407,7 +410,10 @@ namespace Trader.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<DateTime?>("CandleOpenTime")
+                    b.Property<DateTime?>("CandleOpenTimeAtBuy")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CandleOpenTimeAtSell")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CreatedDate")
@@ -542,9 +548,6 @@ namespace Trader.Migrations
 
                     b.Property<string>("Pair")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PreferenceOrder")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

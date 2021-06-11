@@ -16,8 +16,6 @@ namespace Trader.Models
 
         public string Pair { get; set; }
 
-        public int PreferenceOrder { get; set; }
-
         public List<string> GetMyCoins()
         {
             return new List<string>

@@ -31,7 +31,6 @@ namespace Trader.Migrations
                     SellTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UpdatedTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {

@@ -7,9 +7,7 @@ namespace Trader.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Discriminator",
-                table: "TradeBot");
+ 
 
             migrationBuilder.CreateTable(
                 name: "TradeBotHistory",
@@ -35,7 +33,6 @@ namespace Trader.Migrations
                     SellTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UpdatedTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -48,12 +45,6 @@ namespace Trader.Migrations
             migrationBuilder.DropTable(
                 name: "TradeBotHistory");
 
-            migrationBuilder.AddColumn<string>(
-                name: "Discriminator",
-                table: "TradeBot",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
         }
     }
 }
