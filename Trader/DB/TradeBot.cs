@@ -37,17 +37,19 @@ namespace BinanceExchange.API.Models.Response
         public decimal? QuantityBought { get; set; }
 
         public decimal? BuyingCommision { get; set; }
+
         public decimal SoldPricePricePerCoin { get; set; }
         public decimal QuantitySold { get; set; }
         public decimal? SoldCommision { get; set; }
         public decimal? TotalSoldAmount { get; set; }
-
+        
         public decimal? TotalBuyCost { get; set; }
 
         public decimal? TotalCurrentValue { get; set; }
 
         public decimal? TotalCurrentProfit { get; set; }
 
+        
 
         public decimal? AvailableAmountForTrading { get; set; }
 
@@ -62,6 +64,11 @@ namespace BinanceExchange.API.Models.Response
         public DateTime? CreatedDate { get; set; }
 
         public DateTime? UpdatedTime { get; set; }
+
+        public int SellWhenNotSoldForDays { get; set; }
+
+        public decimal? TotalExpectedProfit { get; set; }
+
 
         public DateTime? CandleOpenTimeAtBuy { get; set; }
 
@@ -91,6 +98,7 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.QuantitySold).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SoldCommision).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalSoldAmount).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.TotalExpectedProfit).IsRequired().HasColumnType("decimal(30, 12)");
         }
 
     }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Trader.Models
 {
-    public class SignalIndicator
+    public class Signal
     {
         public int Id { get; set; }
         public string Symbol { get; set; }

@@ -16,6 +16,8 @@ namespace Trader.Models
 
         public string Pair { get; set; }
 
+        public string BotGroup { get; set; }
+
         public List<string> GetMyCoins()
         {
             return new List<string>
