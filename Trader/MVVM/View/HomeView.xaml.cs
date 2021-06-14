@@ -18,9 +18,27 @@ using Trader.Models;
 
 namespace Trader.MVVM.View
 {
-    /// <summary>
-    /// Interaction logic for HomeView.xaml
-    /// </summary>
+    public static class Helpers
+    {
+        public static decimal Rnd(this decimal value, int places = 5)
+        {
+            return Math.Round(value, places);
+        }
+
+        public static decimal Deci(this decimal? value)
+        {
+            return Convert.ToDecimal(value);
+        }
+
+        public static decimal GetDiffPerc(this decimal oldValue, decimal NewValue)
+        {
+
+            return ((oldValue - NewValue) / ((NewValue + NewValue) / 2)) * 100;
+        }
+
+
+    }
+
     public partial class HomeView : UserControl
     {
         public List<MyTradeFavouredCoins> MyTradeFavouredCoins { get; set; }
@@ -33,7 +51,7 @@ namespace Trader.MVVM.View
         DB db;
         int intervalminutes = 15;
         double hourDifference = 2;
-        IMapper iMapper;
+        IMapper iMapr;
         DateTime referenceStartTime = DateTime.Today;
 
         public HomeView()
@@ -72,7 +90,7 @@ namespace Trader.MVVM.View
                 cfg.CreateMap<TradeBot, TradeBotHistory>();
             });
 
-            iMapper = config.CreateMapper();
+            iMapr = config.CreateMapper();
 
 #if !DEBUG
 
@@ -528,7 +546,6 @@ namespace Trader.MVVM.View
             await Trade();
         }
 
-
         private async Task ClearData()
         {
             DB TradeDB = new DB();
@@ -550,11 +567,11 @@ namespace Trader.MVVM.View
                 bot.TotalSoldAmount = 0.0M;
                 bot.BuyTime = null;
                 bot.SellTime = null;
-                bot.CreatedDate = DateTime.Now;
+                bot.CreatedDate = new DateTime(2021, 3, 1, 23, 0, 0);
                 bot.UpdatedTime = null;
                 bot.IsActivelyTrading = false;
-                bot.AvailableAmountForTrading = 200;
-                bot.OriginalAllocatedValue = 200;
+                bot.AvailableAmountForTrading = 400;
+                bot.OriginalAllocatedValue = 400;
                 bot.BuyingCommision = 0.0M;
                 bot.QuantitySold = 0.0M;
                 bot.SoldCommision = 0.0M;
@@ -562,11 +579,13 @@ namespace Trader.MVVM.View
                 bot.TotalCurrentProfit = 0.0M;
                 bot.CandleOpenTimeAtBuy = null;
                 bot.BuyOrSell = string.Empty;
+                bot.CandleOpenTimeAtSell = null;
+                bot.TotalExpectedProfit = 0.0M;
                 TradeDB.Update(bot);
-
             }
             await TradeDB.SaveChangesAsync();
         }
+
         private async void btnClearRobot_Click(object sender, RoutedEventArgs e)
         {
             await ClearData();
@@ -630,7 +649,6 @@ namespace Trader.MVVM.View
 
             // await UpdateData();
         }
-
 
         private async Task UpdateData()
         {
@@ -705,92 +723,107 @@ namespace Trader.MVVM.View
         }
 
 
-        List<MyTradeFavouredCoins> myfavCoins = new List<MyTradeFavouredCoins>();
+        List<MyTradeFavouredCoins> myCoins = new List<MyTradeFavouredCoins>();
 
-        private async Task<List<Signal>> GetSignals(DateTime currentCandleSetDate, string botname)
+        private async Task<List<Signal>> GetSignals(DateTime cndlHr)
         {
-
+            logger.Info("GetSignals started for Candle " + cndlHr);
             DB TradeDB = new DB();
 
             List<Signal> signals = new List<Signal>();
-            List<Candle> latestCandles = await TradeDB.Candle.AsNoTracking().Where(x => x.OpenTime == currentCandleSetDate).ToListAsync();
-            DateTime refCandlMinTime = currentCandleSetDate.AddHours(-23);
 
-            List<Candle> ReferenceCandles = await TradeDB.Candle.AsNoTracking()
-                .Where(x => x.OpenTime >= refCandlMinTime && x.OpenTime < currentCandleSetDate).ToListAsync();
+            List<Candle> latestCndls = await TradeDB.Candle.AsNoTracking().Where(x => x.OpenTime == cndlHr).ToListAsync();
 
-            myfavCoins = await db.MyTradeFavouredCoins.AsNoTracking().ToListAsync();
+            // DateTime refCandlMinTime = currentCandleSetDate.AddHours(-23);
 
-            foreach (var myfavcoin in myfavCoins)
+            List<Candle> refCndls = await TradeDB.Candle.AsNoTracking()
+                .Where(x => x.OpenTime >= cndlHr.AddHours(-23) && x.OpenTime < cndlHr).ToListAsync();
+
+
+
+            foreach (var myfavcoin in myCoins)
             {
-                List<string> allusdcombinations = new List<string>() { myfavcoin.Pair + "USDT", myfavcoin.Pair + "BUSD", myfavcoin.Pair + "USDC" };
-                var usdCandleList = latestCandles.Where(x => allusdcombinations.Contains(x.Symbol));
-                if (usdCandleList == null) continue;
-
-                Signal sig = new Signal();
 
                 #region Prefer BUSD if not available go for USDT
 
-                var busdcandle = usdCandleList.Where(x => x.Symbol == myfavcoin.Pair + "BUSD").FirstOrDefault();
-                if (busdcandle != null) sig.Symbol = busdcandle.Symbol;
+                List<string> usdStrings = new List<string>()
+                { myfavcoin.Pair + "USDT", myfavcoin.Pair + "BUSD", myfavcoin.Pair + "USDC" };
 
+                var usdCndlList = latestCndls.Where(x => usdStrings.Contains(x.Symbol));
+
+                if (usdCndlList == null) continue;
+
+                var busdcandle = usdCndlList.Where(x => x.Symbol == myfavcoin.Pair + "BUSD").FirstOrDefault();
+
+                Signal sig = new Signal();
+
+                if (busdcandle != null) sig.Symbol = busdcandle.Symbol;
                 else sig.Symbol = myfavcoin.Pair + "USDT";
 
-                var selFavCoinCandle = usdCandleList.Where(x => x.Symbol == sig.Symbol).FirstOrDefault();
+                var selCndl = usdCndlList.Where(x => x.Symbol == sig.Symbol).FirstOrDefault();
 
-                if (selFavCoinCandle == null) continue;
+                if (selCndl == null) continue;
 
-                sig.CurrentPrice = selFavCoinCandle.CurrentPrice;
-                sig.DayHighPrice = selFavCoinCandle.DayHighPrice;
-                sig.DayLowPrice = selFavCoinCandle.DayLowPrice;
-                sig.CandleOpenTime = selFavCoinCandle.OpenTime;
+                var usdRefCndls = refCndls.Where(x => usdStrings.Contains(x.Symbol));
 
-                sig.DayVolume = usdCandleList.Sum(x => x.DayVolume);
-                sig.DayTradeCount = usdCandleList.Sum(x => x.DayTradeCount);
+                if (usdRefCndls == null || usdRefCndls.Count() == 0) continue;
 
-                var allrefswithUsds = ReferenceCandles.Where(x => allusdcombinations.Contains(x.Symbol));
-                if (allrefswithUsds == null || allrefswithUsds.Count() == 0) continue;
+                #endregion
 
-                sig.ReferenceSetHighPrice = allrefswithUsds.Max(x => x.CurrentPrice);
-                sig.ReferenceSetLowPrice = allrefswithUsds.Min(x => x.CurrentPrice);
-                sig.ReferenceSetAverageCurrentPrice = allrefswithUsds.Average(x => x.CurrentPrice);
-                sig.ReferenceSetDayVolume = allrefswithUsds.Average(x => x.DayVolume);
-                sig.ReferenceSetDayTradeCount = (int)allrefswithUsds.Average(x => x.DayTradeCount);
+                sig.CurrPr = selCndl.CurrentPrice;
+                sig.DayHighPr = selCndl.DayHighPrice;
+                sig.DayLowPr = selCndl.DayLowPrice;
+                sig.CandleOpenTime = selCndl.OpenTime;
+                sig.DayVol = usdCndlList.Sum(x => x.DayVolume);
+                sig.DayTradeCount = usdCndlList.Sum(x => x.DayTradeCount);
+                sig.RefHighPr = usdRefCndls.Max(x => x.CurrentPrice);
+                sig.RefLowPr = usdRefCndls.Min(x => x.CurrentPrice);
+                sig.RefAvgCurrPr = usdRefCndls.Average(x => x.CurrentPrice);
+                sig.RefDayVol = usdRefCndls.Average(x => x.DayVolume);
+                sig.RefDayTradeCount = (int)usdRefCndls.Average(x => x.DayTradeCount);
 
-                sig.DayPriceDifferencePercentage = ((sig.DayHighPrice - sig.DayLowPrice) / ((sig.DayHighPrice + sig.DayLowPrice) / 2)) * 100;
-                sig.PriceDifferenceCurrentAndHighPercentage = Math.Abs((sig.DayHighPrice - sig.CurrentPrice) / ((sig.DayHighPrice + sig.CurrentPrice) / 2) * 100);
-                sig.PriceDifferenceCurrentAndLowPercentage = Math.Abs(((sig.DayLowPrice - sig.CurrentPrice) / ((sig.DayLowPrice + sig.CurrentPrice) / 2)) * 100);
+                sig.DayPrDiffPercentage = ((sig.DayHighPr - sig.DayLowPr) / ((sig.DayHighPr + sig.DayLowPr) / 2)) * 100;
 
-                var dayAveragePrice = (sig.DayHighPrice + sig.DayLowPrice) / 2;
-                if (sig.CurrentPrice < dayAveragePrice) sig.IsCloseToDayLow = true;
+                sig.PrDiffCurrAndHighPerc = Math.Abs((sig.DayHighPr - sig.CurrPr) / ((sig.DayHighPr + sig.CurrPr) / 2) * 100);
+
+                sig.PrDiffCurrAndLowPerc = Math.Abs(((sig.DayLowPr - sig.CurrPr) / ((sig.DayLowPr + sig.CurrPr) / 2)) * 100);
+                // this will always be positive. You need to first target those coins which are 
+                //closest to low price. Dont worry about trade count for now
+
+                sig.CurrPrDiffSigAndRef = ((sig.CurrPr - sig.RefAvgCurrPr) / ((sig.CurrPr + sig.RefAvgCurrPr) / 2)) * 100;
+                //Difference between current price and the average current prices of last 24 hours
+
+                var dayAveragePrice = (sig.DayHighPr + sig.DayLowPr) / 2;
+
+                if (sig.CurrPr < dayAveragePrice) sig.IsCloseToDayLow = true;
+
                 else sig.IsCloseToDayHigh = true;
 
                 signals.Add(sig);
             }
 
-            return signals.OrderByDescending(x => x.ReferenceSetDayTradeCount).ToList();
-
-            #endregion
+            logger.Info("GetSignals Completed for Candle " + cndlHr);
+            return signals.OrderBy(x => x.PrDiffCurrAndLowPerc).ToList();
         }
 
         List<string> boughtCoins = new List<string>();
 
-        private TradeBot UpdateBotToBuy(TradeBot bot, Signal indicator)
+        private TradeBot UpdateBotToBuy(TradeBot bot, Signal signal)
         {
             bot.IsActivelyTrading = true;
-            bot.Pair = indicator.Symbol;
-            bot.DayHigh = indicator.DayHighPrice;
-            bot.DayLow = indicator.DayLowPrice;
-            bot.BuyPricePerCoin = indicator.CurrentPrice;
-            bot.QuantityBought = bot.AvailableAmountForTrading / indicator.CurrentPrice;
+            bot.Pair = signal.Symbol;
+            bot.DayHigh = signal.DayHighPr;
+            bot.DayLow = signal.DayLowPr;
+            bot.BuyPricePerCoin = signal.CurrPr;
+            bot.QuantityBought = bot.AvailableAmountForTrading / signal.CurrPr;
             bot.BuyingCommision = bot.AvailableAmountForTrading * 0.075M / 100;
             bot.TotalBuyCost = bot.AvailableAmountForTrading + bot.BuyingCommision;
-            bot.CurrentPricePerCoin = indicator.CurrentPrice;
+            bot.CurrentPricePerCoin = signal.CurrPr;
             bot.TotalCurrentValue = bot.AvailableAmountForTrading;
-            bot.TotalCurrentProfit = bot.TotalCurrentValue- bot.OriginalAllocatedValue; 
+            bot.TotalCurrentProfit = bot.AvailableAmountForTrading - bot.OriginalAllocatedValue;
             bot.BuyTime = DateTime.Now;
             bot.AvailableAmountForTrading = 0;
-            bot.CandleOpenTimeAtBuy = indicator.CandleOpenTime;
+            bot.CandleOpenTimeAtBuy = signal.CandleOpenTime;
             bot.CandleOpenTimeAtSell = null;
             bot.UpdatedTime = DateTime.Now;
             bot.BuyOrSell = "BUY";
@@ -799,184 +832,136 @@ namespace Trader.MVVM.View
             bot.SoldCommision = 0.0M;
             bot.SoldPricePricePerCoin = 0.0M;
 
-            var starteddate = Convert.ToDateTime(bot.CreatedDate);
-            int totaldayssinceStarted = (DateTime.Now - starteddate).Days;
-
-            decimal expectedProfit = Convert.ToDecimal(bot.OriginalAllocatedValue);
-            for (int j = 0; j < totaldayssinceStarted; j++)
-            {
-                expectedProfit = (expectedProfit + (expectedProfit * 2 / 100));
-            }
-            bot.TotalExpectedProfit = expectedProfit;
-
             return bot;
-
         }
 
         private async Task Buy(List<Signal> Signals, string botname)
         {
+            #region definitions
+
+            logger.Info("Buy started");
+
             DB db = new DB();
+            var bots = await db.TradeBot.OrderBy(x => x.Id).ToListAsync();
 
-            var bots = await db.TradeBot.Where(x => x.Name == botname).OrderBy(x => x.Id).ToListAsync();
+            boughtCoins = await db.TradeBot.Where(x => x.Pair != null).
+                          Select(x => x.Pair).ToListAsync();
 
-            boughtCoins = await db.TradeBot.Where(x => x.Pair != null).Select(x => x.Pair).ToListAsync();
+            bool isdbUpdateRequired = false;
+
+            #endregion definitions
 
             for (int i = 0; i < bots.Count(); i++)
             {
-                
+                #region if bot is currently trading, just update stats and go to next bot
+
                 if (bots[i].IsActivelyTrading)
                 {
                     var botsSignal = Signals.Where(x => x.Symbol == bots[i].Pair).FirstOrDefault();
 
                     if (botsSignal != null)
                     {
-                        bots[i].DayHigh = botsSignal.DayHighPrice;
-                        bots[i].DayLow = botsSignal.DayLowPrice;
-                        bots[i].CurrentPricePerCoin = botsSignal.CurrentPrice;
+                        bots[i].DayHigh = botsSignal.DayHighPr;
+                        bots[i].DayLow = botsSignal.DayLowPr;
+                        bots[i].CurrentPricePerCoin = botsSignal.CurrPr;
                         bots[i].TotalCurrentValue = bots[i].CurrentPricePerCoin * bots[i].QuantityBought;
                         bots[i].TotalCurrentProfit = bots[i].TotalCurrentValue - bots[i].OriginalAllocatedValue;
                         bots[i].UpdatedTime = DateTime.Now;
-
-                        var starteddate = Convert.ToDateTime(bots[i].CreatedDate);
-                        int totaldayssinceStarted = (DateTime.Now - starteddate).Days;
-
-                        decimal expectedProfit = Convert.ToDecimal(bots[i].OriginalAllocatedValue);
-
-                        for (int j = 0; j < totaldayssinceStarted; j++)
-                        {
-                            expectedProfit = (expectedProfit + (expectedProfit * 2 / 100));
-                        }
-                        bots[i].TotalExpectedProfit = expectedProfit;
+                        isdbUpdateRequired = true;
                     }
-
-                    continue; // actively trading, but should I not update the records to the current price?
+                    continue;
                 }
-                if (bots[i].Order == 1)
+
+                #endregion if bot is currently trading, just update stats and go to next bot
+
+                foreach (var sig in Signals)
                 {
-                    foreach (var sig in Signals)
+                    if (sig.IsPicked) { continue; }
+                    if (boughtCoins.Contains(sig.Symbol)) continue;
+
+                    if (sig.CurrPrDiffSigAndRef < 0 &&
+                            Math.Abs(sig.CurrPrDiffSigAndRef) > bots[i].BuyWhenValuePercentageIsBelow)
                     {
-                        if (sig.IsPicked) continue;
-                        if (boughtCoins.Contains(sig.Symbol)) continue;
+                        logger.Info(bots[i].Name + "-" + bots[i].Avatar + "-" + sig.Symbol + "-" +
+                        "Curr Pr: " + sig.CurrPr.Rnd() +
+                        " Ref Pr: " + sig.RefAvgCurrPr.Rnd() +
+                        " price diff % " + sig.CurrPrDiffSigAndRef.Rnd() +
+                        " > " + bots[i].BuyWhenValuePercentageIsBelow.Deci().Rnd() + " Buying ");
 
-                        var sigCurrPri = sig.CurrentPrice;
-                        var sigSymbol = sig.Symbol;
-                        var sigOldPrice = sig.ReferenceSetAverageCurrentPrice;
-                        var priceDiffPerc = (sigCurrPri - sigOldPrice) / ((sigCurrPri + sigOldPrice) / 2) * 100;
+                        bots[i] = UpdateBotToBuy(bots[i], sig);
+                        sig.IsPicked = true;
+                        db.TradeBot.Update(bots[i]);
 
-                        if (priceDiffPerc < 0 && Math.Abs(priceDiffPerc) > bots[i].BuyWhenValuePercentageIsBelow)
-                        {
-                            logger.Info(bots[i].Name + "-" + bots[i].Avatar + "-" + sig.Symbol + "-" +
-                            "Curr Pr: " + Math.Round(sigCurrPri, 6) +
-                            " Ref Pr: " + Math.Round(sigOldPrice, 6) +
-                            " price diff % " + Math.Abs(Math.Round(priceDiffPerc, 6)) +
-                            " > " + Math.Round(Convert.ToDecimal(bots[i].BuyWhenValuePercentageIsBelow), 2) + " Buying ");
+                        TradeBotHistory BotHistory = iMapr.Map<TradeBot, TradeBotHistory>(bots[i]);
+                        BotHistory.Id = 0;
+                        await db.TradeBotHistory.AddAsync(BotHistory);
+                        isdbUpdateRequired = true; //flag that db needs to be updated, and update it at the end
 
-                            bots[i] = UpdateBotToBuy(bots[i], sig);
-                            sig.IsPicked = true;
-                            db.TradeBot.Update(bots[i]);
-                            TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bots[i]);
-                            tradeBotHistory.Id = 0;
-                            await db.TradeBotHistory.AddAsync(tradeBotHistory);
-                            await db.SaveChangesAsync();
-                            while ((i + 2) < bots.Count() && bots[i + 1].Order != 1) i++;
-                            boughtCoins.Add(sig.Symbol);
-                            break;
-                        }
-                        else // the buy criteria is not met, so you are not buying anything. Nothing to update
-                        {
-
-                            continue;
-                        }
+                        // while ((i + 2) < bots.Count() && bots[i + 1].Order != 1) i++; 
+                        // once the first bot bought, there is no point to loop through 2,3,4,5 trying to buy. They will not buy. ( What if there is a second coin whose price is 6% lower than the current buy? so dont skip. Let them try
+                        boughtCoins.Add(sig.Symbol);
+                        break; // coin is bought, dont need to loop through signals.
                     }
-                }
-                else
-                {
-                    var prevCoinPr = bots[i - 1].BuyPricePerCoin;
-                    var prevCoinPair = bots[i - 1].Pair;
-                    DateTime prevCoinBuyTime = Convert.ToDateTime(bots[i - 1].CandleOpenTimeAtBuy);
 
-                    foreach (var sig in Signals)
-                    {
-                        if (sig.IsPicked) { continue; }
-                        if (boughtCoins.Contains(sig.Symbol)) continue;
-
-                        var sigCurrPr = sig.CurrentPrice;
-                        var sigSymbol = sig.Symbol;
-
-                        var oldpriceCandle = await db.Candle.Where(
-                            x => x.Symbol == sig.Symbol &&
-                            x.OpenTime == prevCoinBuyTime
-                            ).FirstOrDefaultAsync();
-
-                        if (oldpriceCandle == null) continue;
-
-                        var indOldPr = oldpriceCandle.CurrentPrice;
-                        var prDiffPerc = (sigCurrPr - indOldPr) / ((sigCurrPr + indOldPr) / 2) * 100;
-
-                        if (prDiffPerc < 0 && Math.Abs(prDiffPerc) > bots[i].BuyWhenValuePercentageIsBelow)
-                        {
-                            logger.Info(bots[i].Name + "-" + bots[i].Avatar + "-" + sig.Symbol + "-" +
-                            "Curr Pr: " + Math.Round(sigCurrPr, 6) +
-                            " Ref Pr: " + Math.Round(indOldPr, 6) +
-                            " price diff % " + Math.Abs(Math.Round(prDiffPerc, 6)) +
-                            " > " + Math.Round(Convert.ToDecimal(bots[i].BuyWhenValuePercentageIsBelow), 2) + " Buying ");
-
-                            bots[i] = UpdateBotToBuy(bots[i], sig);
-                            sig.IsPicked = true;
-                            db.TradeBot.Update(bots[i]);
-                            TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bots[i]);
-                            tradeBotHistory.Id = 0;
-                            await db.TradeBotHistory.AddAsync(tradeBotHistory);
-                            await db.SaveChangesAsync();
-                            while ((i + 2) < bots.Count() && bots[i + 1].Order != 1) i++;
-                            boughtCoins.Add(sig.Symbol);
-                            break;
-                        }
-                        else // the buy criteria is not met, so you are not buying anything. Nothing to update
-                        {
-                            continue;
-                        }
-                    }
                 }
 
             }
-            await db.SaveChangesAsync();
+
+            if (isdbUpdateRequired) await db.SaveChangesAsync();
+            logger.Info("Buy Completed  ");
+
+           
         }
 
         private async Task Sell(List<Signal> Signals, string botname)
         {
+            logger.Info("Sell started for " + botname);
 
+            if (Signals == null || Signals.Count() == 0)
+            {
+                logger.Info("No signals found. returning from selling");
+                return;
+            }
+
+            try
+            {
+                var candleopentime = Signals.Max(x => x.CandleOpenTime);
+
+                var date = new DateTime(2021, 3, 6, 1, 0, 0);
+                if (candleopentime == date)
+                {
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                logger.Error(ex.Message);
+            }
             DB TradeDB = new DB();
             var bots = await TradeDB.TradeBot.Where(x => x.Name == botname).OrderBy(x => x.Id).ToListAsync();
             var batgroupname = string.Empty;
             decimal? totBuyPr = 0;
             decimal? totCurrPr = 0;
 
-            decimal? avgProfitPerc= bots.Average(x=>x.SellWhenProfitPercentageIsAbove);
-            double totaldaysnotsold=0;
-            DateTime? maxbuyDate=bots.Max(x=>x.CandleOpenTimeAtBuy);
-            
-            if(maxbuyDate!=null)
-            {
-                totaldaysnotsold=(DateTime.Now- Convert.ToDateTime(maxbuyDate)).TotalDays;
-            }
+            decimal? avgProfitPerc = bots.Average(x => x.SellWhenProfitPercentageIsAbove);
 
-            double sellAfternotsoldfordays=bots.Average(x=>x.SellWhenNotSoldForDays);
 
-            foreach (var bot in bots)
+            foreach (var bot in bots) // this loop is used to calculate the total current price totCurrPr of the bought group.
             {
+                batgroupname = bot.Name;
                 if (!bot.IsActivelyTrading) continue; // empty bot, nothing to update
 
                 decimal qtyBght = Convert.ToDecimal(bot.QuantityBought);
-                
+
                 totBuyPr += bot.TotalBuyCost;
 
                 foreach (var signal in Signals)
                 {
                     if (signal.Symbol == bot.Pair)
                     {
-                        var currentPrice = signal.CurrentPrice;
-                        totCurrPr += (signal.CurrentPrice * qtyBght) + ((signal.CurrentPrice * qtyBght) * (0.075M / 100));
+                        var currentPrice = signal.CurrPr;
+                        totCurrPr += (signal.CurrPr * qtyBght) + ((signal.CurrPr * qtyBght) * (0.075M / 100));
                         break;
                     }
                 }
@@ -988,17 +973,19 @@ namespace Trader.MVVM.View
 
                 bool isBotGrSold = false;
 
-                if (prDiffPerc > avgProfitPerc) //Your total profit is more than avgProfitPerc. Sell it and get ready to buy again.
+                if (prDiffPerc > 5) //Your total profit is more than avgProfitPerc. Sell it and get ready to buy again.
                 {
+
                     decimal botGrAvlAmt = 0.0M;
+
                     foreach (var bot in bots)
                     {
                         batgroupname = bot.Name;
 
-                        if (!bot.IsActivelyTrading) // bought is not actively trading, but take the avail amt to calc how to distribue after sold
+                        if (!bot.IsActivelyTrading) // bot  not trading, but take the avail amt to calc how to distribue after sold
                         {
                             botGrAvlAmt += Convert.ToDecimal(bot.AvailableAmountForTrading);
-                            continue;
+                            continue; // no data to update, its not actively trading, empty robo
                         }
 
                         var CoinPair = bot.Pair;
@@ -1011,27 +998,25 @@ namespace Trader.MVVM.View
                             signal = Signals.Where(x => x.Symbol == CoinPair).FirstOrDefault();
                         }
 
-                        bot.DayHigh = signal.DayHighPrice;
-                        bot.DayLow = signal.DayLowPrice;
-                        bot.CurrentPricePerCoin = signal.CurrentPrice;
+                        bot.DayHigh = signal.DayHighPr;
+                        bot.DayLow = signal.DayLowPr;
+                        bot.CurrentPricePerCoin = signal.CurrPr;
                         bot.TotalCurrentValue = bot.CurrentPricePerCoin * bot.QuantityBought;
                         bot.QuantitySold = Convert.ToDecimal(bot.QuantityBought);
                         bot.SoldCommision = bot.CurrentPricePerCoin * bot.QuantityBought * 0.075M / 100;
                         bot.TotalSoldAmount = bot.TotalCurrentValue - bot.SoldCommision;
                         bot.AvailableAmountForTrading = bot.TotalSoldAmount;
-                        bot.TotalCurrentProfit = 0.0M; // field not required
                         bot.SellTime = DateTime.Now;
                         bot.UpdatedTime = DateTime.Now;
-                        bot.SoldPricePricePerCoin = signal.CurrentPrice;
+                        bot.SoldPricePricePerCoin = signal.CurrPr;
                         bot.CandleOpenTimeAtSell = signal.CandleOpenTime;
                         bot.BuyOrSell = "SELL";
+
                         botGrAvlAmt += Convert.ToDecimal(bot.TotalSoldAmount);
                         // create sell order (in live system)
-
-                        TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bot);
+                        TradeBotHistory tradeBotHistory = iMapr.Map<TradeBot, TradeBotHistory>(bot);
                         tradeBotHistory.Id = 0;
                         await TradeDB.TradeBotHistory.AddAsync(tradeBotHistory);
-
                         // reset records to buy again
                         bot.DayHigh = 0.0M;
                         bot.DayLow = 0.0M;
@@ -1048,7 +1033,6 @@ namespace Trader.MVVM.View
                         bot.SoldPricePricePerCoin = 0.0M;
                         bot.QuantitySold = 0.0M;
                         bot.SoldCommision = 0.0M;
-                        bot.TotalCurrentProfit = 0.0M;
                         bot.IsActivelyTrading = false;
                         bot.CandleOpenTimeAtBuy = null;
                         bot.CandleOpenTimeAtSell = null;
@@ -1062,191 +1046,329 @@ namespace Trader.MVVM.View
 
                     if (isBotGrSold)
                     {
-                        logger.Info(batgroupname + "-" + " group buy price " + Math.Round(Convert.ToDecimal(totBuyPr), 6) +
+                        logger.Info(batgroupname + "-" + " grp buy price " + Math.Round(Convert.ToDecimal(totBuyPr), 6) +
                        " sell price " + Math.Round(Convert.ToDecimal(totCurrPr), 6) +
-                       " diff % " + Math.Round(Convert.ToDecimal(prDiffPerc), 6) + " > "+ avgProfitPerc+ " % . selling ");
+                       " diff % " + Math.Round(Convert.ToDecimal(prDiffPerc), 6) + " > " + " 5 % . selling ");
 
                         foreach (var bot in bots)
                         {
                             bot.AvailableAmountForTrading = botGrAvlAmt / 5;
+                            bot.TotalCurrentProfit = bot.AvailableAmountForTrading - bot.OriginalAllocatedValue;
                             TradeDB.TradeBot.Update(bot);
                         }
                         await TradeDB.SaveChangesAsync();
                     }
+
+                    // return;
                 }
 
-                else if(totaldaysnotsold > sellAfternotsoldfordays)
-                { 
+                //price difference less than average expected profit,
+                //but see if the bots are stuck and can be sold at loss to resume trading.
 
-                    var OriginalAllocatedValue = Convert.ToDecimal(bots.Sum(x=>x.OriginalAllocatedValue));
+                //double totaldaysnotsold = 0;
+                //DateTime? maxbuyDate = bots.Max(x => x.CandleOpenTimeAtBuy);
 
-                    var starteddate=Convert.ToDateTime(bots.Max(x=>x.CreatedDate));
+                //botname = bots.FirstOrDefault().Name;
 
-                    int totaldayssinceStarted=(DateTime.Now- starteddate).Days;
-                    
-                    decimal expectedProfit = OriginalAllocatedValue;
+                //if (maxbuyDate != null)
+                //{
+                //    totaldaysnotsold = (Signals.Max(x => x.CandleOpenTime) - Convert.ToDateTime(maxbuyDate)).TotalDays;
+                //}
 
-                    for (int i=0;i< totaldayssinceStarted;i++)
-                    {
-                        expectedProfit = (expectedProfit + (expectedProfit * 2/100));
-                    }
+                //double sellAfternotsoldfordays = bots.Average(x => x.SellWhenNotSoldForDays);
 
-                    var totalavailablamount=bots.Sum(x=>x.AvailableAmountForTrading);
-
-                    var totalcurrentvalueoftradingbots=bots.Sum(x=>x.TotalCurrentValue);
-                    
-                    var totalbuyCostoftradingbots= bots.Sum(x => x.TotalBuyCost);
-
-                    
-
-                    decimal totalcurrentamount=0;
-
-                    if(totalavailablamount!=null)
-                    {
-                        totalcurrentamount+= Convert.ToDecimal(totalavailablamount);
-                    }
-                    if (totalcurrentvalueoftradingbots != null)
-                    {
-                        totalcurrentamount += Convert.ToDecimal(totalcurrentvalueoftradingbots);
-                    }
+                //if (totaldaysnotsold > sellAfternotsoldfordays) //You are stuck for a few days. See if possible.
+                //{
 
 
+                //    var OriginalAllocatedValue = Convert.ToDecimal(bots.Sum(x => x.OriginalAllocatedValue));
 
-                    // calculate overall profit achieved so far (Sum of totalcurrentvalue+totalavailable amount - (Sum of initial investment). Ensure total current value is calculated before doing this.
+                //    //var starteddate = Convert.ToDateTime(bots.Max(x => x.CreatedDate));
 
-                    decimal overallprofit = totalcurrentamount - OriginalAllocatedValue;
+                //    //int totaldayssinceStarted = (Signals.Max(x => x.CandleOpenTime) - starteddate).Days;
 
-                    // calculate expected profit so far. compound interest of 2% from created date. 
+                //    decimal expectedProfit = Convert.ToDecimal(bots.Sum(x => x.TotalExpectedProfit));
 
-                    // calculate loss when you sell. Total Buy price - Total Current Value.
+                //    var totalavailableamount = bots.Sum(x => x.AvailableAmountForTrading);
 
-                    var totalcurrentloss = totalbuyCostoftradingbots - totalcurrentvalueoftradingbots;
+                //    var totalcurrentvalueoftradingbots = bots.Sum(x => x.TotalCurrentValue);
 
-                    // if your total profit after sold is still bigger than expected profit so far, sell.
+                //    var totalbuyCostoftradingbots = bots.Sum(x => x.TotalBuyCost);
 
-                    if((overallprofit + totalcurrentloss)> expectedProfit)
-                    {
-                        decimal botGrAvlAmt = 0.0M;
 
-                        foreach (var bot in bots)
-                        {
-                            batgroupname = bot.Name;
+                //    decimal totalcurrentamount = 0;
 
-                            if (!bot.IsActivelyTrading)
-                            {
-                                botGrAvlAmt += Convert.ToDecimal(bot.AvailableAmountForTrading);
-                                continue;
-                            }
+                //    if (totalavailableamount != null)
+                //    {
+                //        totalcurrentamount += Convert.ToDecimal(totalavailableamount);
+                //    }
+                //    if (totalcurrentvalueoftradingbots != null)
+                //    {
+                //        totalcurrentamount += Convert.ToDecimal(totalcurrentvalueoftradingbots);
+                //    }
 
-                            var CoinPair = bot.Pair;
-                            var signal = Signals.Where(x => x.Symbol == CoinPair).FirstOrDefault();
 
-                            if (signal == null)
-                            {
-                                if (CoinPair.Contains("BUSD")) CoinPair = CoinPair.Replace("BUSD", "USDT");
-                                else if (CoinPair.Contains("USDT")) CoinPair = CoinPair.Replace("USDT", "BUSD");
-                                signal = Signals.Where(x => x.Symbol == CoinPair).FirstOrDefault();
-                            }
+                //    // calculate overall profit achieved so far (Sum of totalcurrentvalue+totalavailable amount - (Sum of initial investment). Ensure total current value is calculated before doing this.
 
-                            bot.DayHigh = signal.DayHighPrice;
-                            bot.DayLow = signal.DayLowPrice;
-                            bot.CurrentPricePerCoin = signal.CurrentPrice;
-                            bot.TotalCurrentValue = bot.CurrentPricePerCoin * bot.QuantityBought;
-                            bot.QuantitySold = Convert.ToDecimal(bot.QuantityBought);
-                            bot.SoldCommision = bot.CurrentPricePerCoin * bot.QuantityBought * 0.075M / 100;
-                            bot.TotalSoldAmount = bot.TotalCurrentValue - bot.SoldCommision;
-                            bot.AvailableAmountForTrading = bot.TotalSoldAmount;
-                            bot.TotalCurrentProfit = 0.0M; // field not required
-                            bot.SellTime = DateTime.Now;
-                            bot.UpdatedTime = DateTime.Now;
-                            bot.SoldPricePricePerCoin = signal.CurrentPrice;
-                            bot.CandleOpenTimeAtSell = signal.CandleOpenTime;
-                            bot.BuyOrSell = "SELL";
-                            botGrAvlAmt += Convert.ToDecimal(bot.TotalSoldAmount);
-                            // create sell order (in live system)
 
-                            TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bot);
-                            tradeBotHistory.Id = 0;
-                            await TradeDB.TradeBotHistory.AddAsync(tradeBotHistory);
+                //    // calculate expected profit so far. compound interest of 2% from created date. 
 
-                            // reset records to buy again
-                            bot.DayHigh = 0.0M;
-                            bot.DayLow = 0.0M;
-                            bot.Pair = null;
-                            bot.BuyPricePerCoin = 0.0M;
-                            bot.CurrentPricePerCoin = 0.0M;
-                            bot.QuantityBought = 0.0M;
-                            bot.TotalBuyCost = 0.0M;
-                            bot.TotalCurrentValue = 0.0M;
-                            bot.TotalSoldAmount = 0.0M;
-                            bot.BuyTime = null;
-                            bot.SellTime = null;
-                            bot.BuyingCommision = 0.0M;
-                            bot.SoldPricePricePerCoin = 0.0M;
-                            bot.QuantitySold = 0.0M;
-                            bot.SoldCommision = 0.0M;
-                            bot.TotalCurrentProfit = 0.0M;
-                            bot.IsActivelyTrading = false;
-                            bot.CandleOpenTimeAtBuy = null;
-                            bot.CandleOpenTimeAtSell = null;
-                            bot.BuyOrSell = string.Empty;
-                            TradeDB.TradeBot.Update(bot);
-                            await TradeDB.SaveChangesAsync();
-                            isBotGrSold = true;
-                            // In the future write code to wait and see if the prices keep going up before selling abruptly.
-                            //Only when you have made sufficiently sure that prices will not go higher, then sell them.
-                        }
+                //    // calculate loss when you sell. Total Buy price - Total Current Value.
 
-                        if (isBotGrSold)
-                        {
-                            logger.Info(batgroupname + "-" + " group buy price " + Math.Round(Convert.ToDecimal(totBuyPr), 6) +
-                           " sell price " + Math.Round(Convert.ToDecimal(totCurrPr), 6) +
-                           " diff % " + Math.Round(Convert.ToDecimal(prDiffPerc), 6) + " . selling at a lose to resume trading");
+                //    var totalcurrentloss = totalbuyCostoftradingbots - totalcurrentvalueoftradingbots;
 
-                            foreach (var bot in bots)
-                            {
-                                bot.AvailableAmountForTrading = botGrAvlAmt / 5;
-                                TradeDB.TradeBot.Update(bot);
-                            }
-                            await TradeDB.SaveChangesAsync();
-                        }
+                //    // if your total profit after sold is still bigger than expected profit so far, sell.
 
-                    }
+                //    //if (prDiffPerc > - 19 &&
+                //    //    (totalcurrentamount - totalcurrentloss) > expectedProfit)
+                //    //{
+                //    //    decimal botGrAvlAmt = 0.0M;
+                //    //    foreach (var bot in bots)
+                //    //    {
+                //    //        batgroupname = bot.Name;
 
-                    // else HODL.
-                }
+                //    //        if (!bot.IsActivelyTrading) // bought is not actively trading, but take the avail amt to calc how to distribue after sold
+                //    //        {
+                //    //            botGrAvlAmt += Convert.ToDecimal(bot.AvailableAmountForTrading);
+
+                //    //            continue; // no data to update, its not actively trading, empty robo
+                //    //        }
+
+                //    //        var CoinPair = bot.Pair;
+                //    //        var signal = Signals.Where(x => x.Symbol == CoinPair).FirstOrDefault();
+
+                //    //        if (signal == null)
+                //    //        {
+                //    //            if (CoinPair.Contains("BUSD")) CoinPair = CoinPair.Replace("BUSD", "USDT");
+                //    //            else if (CoinPair.Contains("USDT")) CoinPair = CoinPair.Replace("USDT", "BUSD");
+                //    //            signal = Signals.Where(x => x.Symbol == CoinPair).FirstOrDefault();
+                //    //        }
+
+                //    //        if (signal == null)
+                //    //        {
+                //    //            logger.Error("Unusual. Signal came out null for pair " + CoinPair + " while trying to force sell");
+                //    //            logger.Error("Going to next bot");
+                //    //            continue;
+                //    //        }
+
+                //    //        bot.DayHigh = signal.DayHighPrice;
+                //    //        bot.DayLow = signal.DayLowPrice;
+                //    //        bot.CurrentPricePerCoin = signal.CurrentPrice;
+                //    //        bot.TotalCurrentValue = bot.CurrentPricePerCoin * bot.QuantityBought;
+                //    //        bot.QuantitySold = Convert.ToDecimal(bot.QuantityBought);
+                //    //        bot.SoldCommision = bot.CurrentPricePerCoin * bot.QuantityBought * 0.075M / 100;
+                //    //        bot.TotalSoldAmount = bot.TotalCurrentValue - bot.SoldCommision;
+                //    //        bot.AvailableAmountForTrading = bot.TotalSoldAmount;
+                //    //        bot.TotalCurrentProfit = bot.AvailableAmountForTrading - bot.OriginalAllocatedValue;
+                //    //        bot.SellTime = DateTime.Now;
+                //    //        bot.UpdatedTime = DateTime.Now;
+                //    //        bot.SoldPricePricePerCoin = signal.CurrentPrice;
+                //    //        bot.CandleOpenTimeAtSell = signal.CandleOpenTime;
+                //    //        bot.BuyOrSell = "SELL";
+
+
+                //    //        botGrAvlAmt += Convert.ToDecimal(bot.TotalSoldAmount);
+                //    //        // create sell order (in live system)
+
+                //    //        TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bot);
+                //    //        tradeBotHistory.Id = 0;
+                //    //        await TradeDB.TradeBotHistory.AddAsync(tradeBotHistory);
+
+                //    //        // reset records to buy again
+                //    //        bot.DayHigh = 0.0M;
+                //    //        bot.DayLow = 0.0M;
+                //    //        bot.Pair = null;
+                //    //        bot.BuyPricePerCoin = 0.0M;
+                //    //        bot.CurrentPricePerCoin = 0.0M;
+                //    //        bot.QuantityBought = 0.0M;
+                //    //        bot.TotalBuyCost = 0.0M;
+                //    //        bot.TotalCurrentValue = 0.0M;
+                //    //        bot.TotalSoldAmount = 0.0M;
+                //    //        bot.BuyTime = null;
+                //    //        bot.SellTime = null;
+                //    //        bot.BuyingCommision = 0.0M;
+                //    //        bot.SoldPricePricePerCoin = 0.0M;
+                //    //        bot.QuantitySold = 0.0M;
+                //    //        bot.SoldCommision = 0.0M;
+                //    //        bot.IsActivelyTrading = false;
+                //    //        bot.CandleOpenTimeAtBuy = null;
+                //    //        bot.CandleOpenTimeAtSell = null;
+                //    //        bot.BuyOrSell = string.Empty;
+                //    //        TradeDB.TradeBot.Update(bot);
+                //    //        await TradeDB.SaveChangesAsync();
+                //    //        isBotGrSold = true;
+                //    //        // In the future write code to wait and see if the prices keep going up before selling abruptly.
+                //    //        //Only when you have made sufficiently sure that prices will not go higher, then sell them.
+                //    //    }
+
+
+                //    //    if (isBotGrSold)
+                //    //    {
+                //    //        logger.Info(
+
+                //    //        batgroupname + "-" + " group buy price " + Math.Round(Convert.ToDecimal(totBuyPr), 6) +
+                //    //        " sell price " + Math.Round(Convert.ToDecimal(totCurrPr), 6) +
+                //    //        " diff % " + Math.Round(Convert.ToDecimal(prDiffPerc), 6) +
+                //    //        " Days not sold: " + Math.Round(totaldaysnotsold, 1) +
+                //    //         " > allowed non traded days " + Math.Round(sellAfternotsoldfordays, 0) + ". Force Selling");
+
+
+
+                //    //        foreach (var bot in bots)
+                //    //        {
+                //    //            bot.AvailableAmountForTrading = botGrAvlAmt / 5;
+                //    //            TradeDB.TradeBot.Update(bot);
+                //    //        }
+                //    //        await TradeDB.SaveChangesAsync();
+                //    //    }
+                //    //}
+
+                //    //else
+                //    //{
+                //    //    logger.Info(batgroupname + "-" + " total Amt planned to sell " + Math.Round(Convert.ToDecimal(totalcurrentamount + totalcurrentloss), 6) +
+                //    //     " < profit expected " + Math.Round(Convert.ToDecimal(expectedProfit), 6) + " .  HODLing" +
+                //    //       " Days not sold: " + Math.Round(totaldaysnotsold, 1) +
+                //    //       " allowed non traded days " + Math.Round(sellAfternotsoldfordays, 0)
+                //    //       );
+
+                //    //}
+
+
+                //    // else HODL.
+                //}
 
 
             }
 
+            await TradeDB.SaveChangesAsync();
+            logger.Info("Sell Completed for " + botname);
         }
 
         private async Task Trade()
         {
             await ClearData();
             DB db = new DB();
-
-
+            var allbots = await db.TradeBot.ToListAsync();
             List<Signal> signals = new List<Signal>();
+            myCoins = await db.MyTradeFavouredCoins.AsNoTracking().ToListAsync();
 
-            DateTime latestCandleDate = db.Candle.AsNoTracking().Max(x => x.OpenTime); // for prod
-            DateTime currentCandleDate = new DateTime(2021, 3, 1, 23, 0, 0);
+            //  DateTime latestCandleDate = db.Candle.AsNoTracking().Max(x => x.OpenTime); // for prod
+            DateTime startHr = new DateTime(2021, 3, 2, 0, 0, 0);
+            DateTime endHr = new DateTime(2021, 3, 15, 0, 0, 0);
 
-            List<string> bots = new List<string>() { "Diana", "Damien", "Shatlin", "Pepper", "Eevee" };
+          //  List<string> bots = new List<string>() { "Diana", "Damien", "Shatlin", "Pepper", "Eevee" };
 
-            while (currentCandleDate < latestCandleDate)
+            int i = 0;
+            while (startHr < endHr)
             {
-                foreach (string bot in bots)
+                if (i % 24 == 0) // do it only once a day
                 {
-                    logger.Info("Starting Trade Cycle with Candle Open time " + currentCandleDate);
-                    signals = await GetSignals(currentCandleDate, bot);
-                    await Buy(signals, bot);
-                    await Sell(signals, bot);
-                    currentCandleDate = currentCandleDate.AddHours(1);
+                    foreach (var b in allbots)
+                    {
+                        var starteddate = Convert.ToDateTime(b.CreatedDate);
+                        var totaldayssinceStarted = (startHr - starteddate).Days;
+                        var expectedProfit = Convert.ToDecimal(b.OriginalAllocatedValue);
+
+                        for (int j = 0; j < totaldayssinceStarted; j++)
+                        {
+                            expectedProfit = (expectedProfit + (expectedProfit * 0.6M / 100)); //expecting 0.4% profit daily
+                        }
+                        b.TotalExpectedProfit = expectedProfit;
+                    }
+                    await db.SaveChangesAsync();
                 }
+
+                logger.Info("Starting Trade Cycle with Candle time " + startHr);
+                signals = await GetSignals(startHr);
+                await Buy(signals, "");
+                await Sell(signals, "");
+                logger.Info("Completed Trade Cycle with Candle time " + startHr);
+
+                startHr = startHr.AddHours(1);
+                i++;
             }
+
 
         }
 
     }
 }
+
+/*
+ //old code of buy
+
+ if (bots[i].Order == 1)
+                {
+                    foreach (var sig in Signals)
+                    {
+                        if (sig.IsPicked) continue;
+                        if (boughtCoins.Contains(sig.Symbol)) continue;
+
+                        //buying criteria
+                        //1. signals are ordered by the coins whose current price are at their lowest at the moment
+                        //2. See if this price is the lowest in the last 24 hours
+                        //3. See if the price difference is lower than what the bot is expecting to buy at. If yes, buy.
+
+                        if (sig.CurrPrDiffSigAndRef < 0 &&
+                            Math.Abs(sig.CurrPrDiffSigAndRef) > bots[i].BuyWhenValuePercentageIsBelow)
+                        {
+                            logger.Info(bots[i].Name + "-" + bots[i].Avatar + "-" + sig.Symbol + "-" +
+                            "Curr Pr: " + sig.CurrPr.Rnd() +
+                            " Ref Pr: " + sig.RefAvgCurrPr.Rnd() +
+                            " price diff % " + sig.CurrPrDiffSigAndRef.Rnd() +
+                            " > " + bots[i].BuyWhenValuePercentageIsBelow.Deci().Rnd() + " Buying ");
+
+                            bots[i] = UpdateBotToBuy(bots[i], sig);
+                            sig.IsPicked = true;
+                            db.TradeBot.Update(bots[i]);
+
+                            TradeBotHistory BotHistory = iMapr.Map<TradeBot, TradeBotHistory>(bots[i]);
+                            BotHistory.Id = 0;
+                            await db.TradeBotHistory.AddAsync(BotHistory);
+                            isdbUpdateRequired = true; //flag that db needs to be updated, and update it at the end
+
+                            // while ((i + 2) < bots.Count() && bots[i + 1].Order != 1) i++; 
+                            // once the first bot bought, there is no point to loop through 2,3,4,5 trying to buy. They will not buy. ( What if there is a second coin whose price is 6% lower than the current buy? so dont skip. Let them try
+                            boughtCoins.Add(sig.Symbol);
+                            break; // coin is bought, dont need to loop through signals.
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var sig in Signals)
+                    {
+                        if (sig.IsPicked) { continue; }
+                        if (boughtCoins.Contains(sig.Symbol)) continue;
+
+                        //look for the last bots candlebuytime and get that candle.
+                        var prevBotCandle = await db.Candle.Where
+                            (x => x.Symbol == sig.Symbol && 
+                            x.OpenTime == Convert.ToDateTime(bots[i - 1].CandleOpenTimeAtBuy)).FirstOrDefaultAsync();
+
+                        if (prevBotCandle == null) continue;
+
+                        var prDiffPerc = sig.CurrPr.GetDiffPerc(prevBotCandle.CurrentPrice);
+
+                        if (prDiffPerc < 0 && Math.Abs(prDiffPerc) > bots[i].BuyWhenValuePercentageIsBelow)
+                        {
+                            logger.Info(bots[i].Name + "-" + bots[i].Avatar + "-" + sig.Symbol + "-" +
+                            "Curr Pr: " + Math.Round(sig.CurrPr, 6) +
+                            " Ref Pr: " + Math.Round(prevBotCandle.CurrentPrice, 6) +
+                            " price diff % " + Math.Abs(Math.Round(prDiffPerc, 6)) +
+                            " > " + Math.Round(Convert.ToDecimal(bots[i].BuyWhenValuePercentageIsBelow), 2) + " Buying ");
+
+                            bots[i] = UpdateBotToBuy(bots[i], sig);
+                            sig.IsPicked = true;
+                            db.TradeBot.Update(bots[i]);
+                            TradeBotHistory tradeBotHistory = iMapr.Map<TradeBot, TradeBotHistory>(bots[i]);
+                            tradeBotHistory.Id = 0;
+                            await db.TradeBotHistory.AddAsync(tradeBotHistory);
+                            await db.SaveChangesAsync();
+                            //while ((i + 2) < bots.Count() && bots[i + 1].Order != 1) i++;
+                            boughtCoins.Add(sig.Symbol);
+                            break;
+                        }
+                    }
+                }
+ */
