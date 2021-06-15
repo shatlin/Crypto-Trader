@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DB\Debug\**" />
+    <EmbeddedResource Remove="DB\Debug\**" />
+    <None Remove="DB\Debug\**" />
+    <Page Remove="DB\Debug\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Fonts\Poppins-Regular.ttf" />
   </ItemGroup>
 
@@ -46,6 +53,10 @@
 
   <ItemGroup>
     <Folder Include="MVVM\Model\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bin\Properties\PublishProfiles\ClickOnceProfile.pubxml" />
   </ItemGroup>
 
   <ItemGroup>

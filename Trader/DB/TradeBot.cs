@@ -28,7 +28,7 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? BuyWhenValuePercentageIsBelow { get; set; }
 
-        public decimal? SellWhenProfitPercentageIsAbove { get; set; }
+        public decimal? SellWhenProfitPercentageGoesBelow { get; set; }
 
         public decimal? BuyPricePerCoin { get; set; }
 
@@ -84,7 +84,7 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.DayLow).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.BuyWhenValuePercentageIsBelow).IsRequired().HasColumnType("decimal(30, 12)");
-            builder.Property(e => e.SellWhenProfitPercentageIsAbove).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SellWhenProfitPercentageGoesBelow).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.BuyPricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.CurrentPricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.QuantityBought).IsRequired().HasColumnType("decimal(30, 12)");

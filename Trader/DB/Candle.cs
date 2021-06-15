@@ -18,6 +18,8 @@ namespace BinanceExchange.API.Models.Response
         [Column(Order = 2)]
         public string Symbol { get; set; }
 
+        [Column(Order = 4)]
+        public DateTime? RecordedTime { get; set; }
 
         [Column(Order = 4)]
         public DateTime OpenTime { get; set; }
