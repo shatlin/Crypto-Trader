@@ -15,26 +15,27 @@ namespace Trader.Models
 
         public DB()
         {
-            Database.EnsureCreated();
+
+            Database.SetCommandTimeout(new TimeSpan(0,0,120));
+            // Database.EnsureCreated();
         }
 
-        public DbSet<Price> Price { get;set;}
         public DbSet<APIDetails> API { get; set; }
         public DbSet<Balance> Balance { get; set; }
-        //public DbSet<PriceChange> PriceChange { get; set; }
         public DbSet<Candle> Candle { get; set; }
+        public DbSet<Candle15> Candle15 { get; set; }
         public DbSet<DailyCandle> DailyCandle { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
-        public DbSet<MyTradeFavouredCoins> MyTradeFavouredCoins { get; set; }
+        public DbSet<MyCoins> MyCoins { get; set; }
         public DbSet<Counter> Counter { get; set; }
-        public DbSet<TradeBot> TradeBot { get; set; }
-        public DbSet<TradeBotHistory> TradeBotHistory { get; set; }
+        public DbSet<Player> Player { get; set; }
+        public DbSet<PlayerHist> PlayerHist { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance;Integrated Security=True");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance2;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -42,14 +43,14 @@ namespace Trader.Models
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.ApplyConfiguration(new PriceConfiguration());
             modelBuilder.ApplyConfiguration(new APIConfiguration());
             modelBuilder.ApplyConfiguration(new MyTradeConfiguration());
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
+            modelBuilder.ApplyConfiguration(new Candle15Configuration());
             modelBuilder.ApplyConfiguration(new DailyCandleConfiguration());
-            modelBuilder.ApplyConfiguration(new TradeBotConfiguration());
-            modelBuilder.ApplyConfiguration(new TradeBotHistoryConfiguration());
+            modelBuilder.ApplyConfiguration(new PlayerConfiguration());
+            modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
         }
     }
 

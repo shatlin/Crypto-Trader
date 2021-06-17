@@ -7,8 +7,9 @@ using Newtonsoft.Json;
 
 namespace BinanceExchange.API.Models.Response
 {
-    public class TradeBotHistory
+    public class Player
     {
+       
         public int Id { get; set; }
 
         public int Order { get; set; }
@@ -16,36 +17,47 @@ namespace BinanceExchange.API.Models.Response
         public string Name { get; set; }
 
         public string Avatar { get; set; }
-
+      
         public string Pair { get; set; }
+
+        public string BuyOrSell { get; set; }
 
         public decimal? DayHigh { get; set; }
 
         public decimal? DayLow { get; set; }
 
-        public string BuyOrSell { get; set; }
+        public decimal? BuyBelowPerc { get; set; }
 
-        public decimal? BuyWhenValuePercentageIsBelow { get; set; }
+        public decimal? DontSellBelowPerc { get; set; }
 
-        public decimal? SellWhenProfitPercentageGoesBelow { get; set; }
+        public decimal? SellBelowPerc { get; set; }
+
+        public decimal? SellAbovePerc { get; set; }
 
         public decimal? BuyPricePerCoin { get; set; }
 
         public decimal CurrentPricePerCoin { get; set; }
-
+       
         public decimal? QuantityBought { get; set; }
 
+        public decimal? BuyingCommision { get; set; }
+
+        public decimal SoldPricePricePerCoin { get; set; }
+        public decimal QuantitySold { get; set; }
+        public decimal? SoldCommision { get; set; }
+        public decimal? TotalSoldAmount { get; set; }
+        
         public decimal? TotalBuyCost { get; set; }
 
         public decimal? TotalCurrentValue { get; set; }
 
         public decimal? TotalCurrentProfit { get; set; }
 
-        public decimal? OriginalAllocatedValue { get; set; }
-
         public decimal? AvailableAmountForTrading { get; set; }
 
-        public bool IsActivelyTrading { get; set; }
+        public decimal? OriginalAllocatedValue { get; set; }
+
+        public bool IsTrading { get; set; }
 
         public DateTime? BuyTime { get; set; }
 
@@ -59,25 +71,26 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? TotalExpectedProfit { get; set; }
 
-        public decimal? BuyingCommision { get; set; }
-        public decimal SoldPricePricePerCoin { get; set; }
-        public decimal QuantitySold { get; set; }
-        public decimal? SoldCommision { get; set; }
-        public decimal? TotalSoldAmount { get; set; }
         public DateTime? CandleOpenTimeAtBuy { get; set; }
+
         public DateTime? CandleOpenTimeAtSell { get; set; }
+
+        public int BuyCandleId { get; set; }
+
+        public int SellCandleId { get; set; }
     }
 
-    public partial class TradeBotHistoryConfiguration : IEntityTypeConfiguration<TradeBotHistory>
+    public partial class PlayerConfiguration : IEntityTypeConfiguration<Player>
     {
-        public void Configure(EntityTypeBuilder<TradeBotHistory> builder)
+        public void Configure(EntityTypeBuilder<Player> builder)
         {
-
             builder.Property(e => e.BuyOrSell).IsRequired(false);
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.DayLow).IsRequired().HasColumnType("decimal(30, 12)");
-            builder.Property(e => e.BuyWhenValuePercentageIsBelow).IsRequired().HasColumnType("decimal(30, 12)");
-            builder.Property(e => e.SellWhenProfitPercentageGoesBelow).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.BuyBelowPerc).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SellBelowPerc).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.DontSellBelowPerc).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SellAbovePerc).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.BuyPricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.CurrentPricePerCoin).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.QuantityBought).IsRequired().HasColumnType("decimal(30, 12)");

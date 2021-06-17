@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace Trader.Models
 {
 
-    //1	2R85z2YZ1MA4P17VudVdBZyUJVGRZ4Pqqt3dDpNYMWHsWocmkgPCTFZIYE5TkYYZ	1a1TrhcElv7WmytTdJGPBFcIO12JDntpAdS7xLtOcacj1Lm0KWibchgAMKvr6lav
     public class APIDetails: BaseModel
     {
         public int id{get;set; }

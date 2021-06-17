@@ -84,8 +84,6 @@ namespace BinanceExchange.API.Models.Response
         [Column(Order = 24)]
         public decimal OpenPrice { get; set; }
 
-        [Column(Order = 25)]
-        public int DataSet { get; set; }
     }
 
     public partial class DailyCandleConfiguration : IEntityTypeConfiguration<DailyCandle>

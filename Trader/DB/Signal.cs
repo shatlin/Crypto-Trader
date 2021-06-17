@@ -37,7 +37,7 @@ namespace Trader.Models
         public bool IsCloseToDayLow { get; set; }
         public bool IsPicked { get; set; }
         public bool IsIgnored { get; set; }
-
+        public int CandleId { get; set; }
         public DateTime CandleOpenTime { get; set; }
     }
 

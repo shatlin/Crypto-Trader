@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace BinanceExchange.API.Models.Response
 {
 
-    public class Candle
+    public class Candle15
     {
         [Column(Order = 1)]
         public int Id { get; set; }
@@ -86,9 +86,9 @@ namespace BinanceExchange.API.Models.Response
   
     }
 
-    public partial class CandleConfiguration : IEntityTypeConfiguration<Candle>
+    public partial class Candle15Configuration : IEntityTypeConfiguration<Candle15>
     {
-        public void Configure(EntityTypeBuilder<Candle> builder)
+        public void Configure(EntityTypeBuilder<Candle15> builder)
         {
             builder.Property(e => e.Open).IsRequired().HasColumnType("decimal(18, 9)");
             builder.Property(e => e.High).IsRequired().HasColumnType("decimal(18, 9)");

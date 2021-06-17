@@ -444,6 +444,612 @@ namespace Trader.MVVM.View
         #endregion Unused Methods
 
 
+        //private async Task<List<Candle>> GetCandles()
+        //{
+        //    DB candledb = new DB();
+        //    logger.Info("Getting Candle Started at " + DateTime.Now);
+        //    var counter = await candledb.Counter.FirstOrDefaultAsync();
+        //    List<Candle> candles = new List<Candle>();
+        //    try
+        //    {
+        //        if (counter.IsCandleBeingUpdated)
+        //        {
+        //            return candles;
+        //        }
+
+        //        //var minutedifference = (DateTime.Now - counter.CandleLastUpdatedTime).TotalMinutes;
+
+        //        //if (minutedifference < (intervalminutes - 5))
+        //        //{
+        //        //    logger.Info(" Candle retrieved only " + minutedifference + " minutes back. Dont need to get again");
+        //        //    return candles;
+        //        //}
+
+        //        counter.IsCandleBeingUpdated = true;
+        //        candledb.Update(counter);
+        //        await candledb.SaveChangesAsync();
+
+        //        var StartlastCandleHour = candledb.Candle.Max(x => x.OpenTime);
+
+        //        MyTradeFavouredCoins = await candledb.MyCoins.ToListAsync();
+
+        //        var prices = await client.GetAllPrices();
+        //        // await UpdateBalance(prices);
+
+
+
+        //        #region get all missing candles
+
+        //        var totalhours = (DateTime.Now - StartlastCandleHour).TotalHours;
+
+        //        if (totalhours > 1)
+        //        {
+        //            foreach (var coin in MyTradeFavouredCoins)
+        //            {
+        //                var pricesofcoin = prices.Where(x => x.Symbol.Contains(coin.Coin));
+        //                if (pricesofcoin == null || pricesofcoin.Count() == 0)
+        //                {
+        //                    continue;
+        //                }
+        //                foreach (var price in pricesofcoin)
+        //                {
+        //                    if (price.Symbol != coin.Coin + "BUSD" && price.Symbol != coin.Coin + "USDC" && price.Symbol != coin.Coin + "USDT") // if the price symbol doesnt contain usdt and busd ignore those coins
+        //                    {
+        //                        continue;
+        //                    }
+        //                    //var pricechangeresponse = await client.GetDailyTicker(price.Symbol);
+        //                    GetKlinesCandlesticksRequest cr = new GetKlinesCandlesticksRequest();
+        //                    cr.Limit = 40;
+        //                    cr.Symbol = price.Symbol;
+        //                    cr.Interval = KlineInterval.OneHour;
+        //                    cr.StartTime = Convert.ToDateTime(StartlastCandleHour).AddHours(1);
+        //                    cr.EndTime = DateTime.Now.AddHours(-1);
+        //                    var candleresponse = await client.GetKlinesCandlesticks(cr);
+
+        //                    foreach (var candleResp in candleresponse)
+        //                    {
+        //                        Candle addCandle = new Candle();
+
+        //                        addCandle.Symbol = cr.Symbol;
+        //                        addCandle.Open = candleResp.Open;
+        //                        addCandle.RecordedTime = DateTime.Now;
+        //                        addCandle.OpenTime = candleResp.OpenTime.AddHours(hourDifference);
+        //                        addCandle.High = candleResp.High;
+        //                        addCandle.Low = candleResp.Low;
+        //                        addCandle.Close = candleResp.Close;
+        //                        addCandle.Volume = candleResp.Volume;
+        //                        addCandle.CloseTime = candleResp.CloseTime.AddHours(hourDifference);
+        //                        addCandle.QuoteAssetVolume = candleResp.QuoteAssetVolume;
+        //                        addCandle.NumberOfTrades = candleResp.NumberOfTrades;
+        //                        addCandle.TakerBuyBaseAssetVolume = candleResp.TakerBuyBaseAssetVolume;
+        //                        addCandle.TakerBuyQuoteAssetVolume = candleResp.TakerBuyQuoteAssetVolume;
+        //                        addCandle.Change = 0;
+        //                        addCandle.PriceChangePercent = 0;
+        //                        addCandle.WeightedAveragePercent = 0;
+        //                        addCandle.PreviousClosePrice = 0;
+        //                        addCandle.CurrentPrice = candleResp.Close;
+        //                        addCandle.OpenPrice = candleResp.Open;
+        //                        addCandle.DayHighPrice = 0;
+        //                        addCandle.DayLowPrice = 0;
+        //                        addCandle.DayVolume = 0;
+        //                        addCandle.DayTradeCount = 0;
+
+        //                        var isCandleExisting = await candledb.Candle.Where(x => x.OpenTime == addCandle.OpenTime && x.Symbol == addCandle.Symbol).FirstOrDefaultAsync();
+
+        //                        if (isCandleExisting == null)
+        //                        {
+        //                            candles.Add(addCandle);
+        //                            await candledb.Candle.AddAsync(addCandle);
+        //                            await candledb.SaveChangesAsync();
+        //                        }
+        //                    }
+        //                }
+        //            }
+
+        //            var UpdatedlastCandleHour = candledb.Candle.Max(x => x.OpenTime);
+        //            List<Candle> selectedCandles;
+        //            while (StartlastCandleHour <= UpdatedlastCandleHour)
+        //            {
+        //                try
+        //                {
+        //                    foreach (var favtrade in MyTradeFavouredCoins)
+        //                    {
+        //                        selectedCandles = await candledb.Candle.Where(x => x.Symbol.Contains(favtrade.Coin) && x.OpenTime.Date == StartlastCandleHour.Date).ToListAsync();
+
+        //                        if (selectedCandles == null || selectedCandles.Count == 0) continue;
+
+        //                        foreach (var candle in selectedCandles)
+        //                        {
+        //                            candle.DayHighPrice = selectedCandles.Max(x => x.High);
+        //                            candle.DayLowPrice = selectedCandles.Min(x => x.Low);
+        //                            candle.DayVolume = selectedCandles.Sum(x => x.Volume);
+        //                            candle.DayTradeCount = selectedCandles.Sum(x => x.NumberOfTrades);
+        //                            candledb.Candle.Update(candle);
+        //                        }
+        //                        await candledb.SaveChangesAsync();
+        //                    }
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    logger.Error(" Updating candle error " + ex.Message);
+        //                }
+        //                StartlastCandleHour = StartlastCandleHour.AddDays(1);
+        //            }
+
+        //        }
+        //        #endregion get all missing candles
+
+        //        foreach (var coin in MyTradeFavouredCoins)
+        //        {
+        //            var pricesofcoin = prices.Where(x => x.Symbol.Contains(coin.Coin));
+        //            if (pricesofcoin == null || pricesofcoin.Count() == 0)
+        //            {
+        //                continue;
+        //            }
+        //            foreach (var price in pricesofcoin)
+        //            {
+        //                if (price.Symbol != coin.Coin + "BUSD" && price.Symbol != coin.Coin + "USDC" && price.Symbol != coin.Coin + "USDT") // if the price symbol doesnt contain usdt and busd ignore those coins
+        //                {
+        //                    continue;
+        //                }
+        //                Candle candle = new Candle();
+        //                var pricechangeresponse = await client.GetDailyTicker(price.Symbol);
+        //                GetKlinesCandlesticksRequest cr = new GetKlinesCandlesticksRequest();
+        //                cr.Limit = 1;
+        //                cr.Symbol = price.Symbol;
+        //                cr.Interval = KlineInterval.OneHour;
+
+        //                var candleresponse = await client.GetKlinesCandlesticks(cr);
+        //                candle.RecordedTime = DateTime.Now;
+        //                candle.Symbol = price.Symbol;
+        //                candle.Open = candleresponse[0].Open;
+        //                candle.OpenTime = candleresponse[0].OpenTime.AddHours(hourDifference);
+        //                candle.High = candleresponse[0].High;
+        //                candle.Low = candleresponse[0].Low;
+        //                candle.Close = candleresponse[0].Close;
+        //                candle.Volume = candleresponse[0].Volume;
+        //                candle.CloseTime = candleresponse[0].CloseTime.AddHours(hourDifference);
+        //                candle.QuoteAssetVolume = candleresponse[0].QuoteAssetVolume;
+        //                candle.NumberOfTrades = candleresponse[0].NumberOfTrades;
+        //                candle.TakerBuyBaseAssetVolume = candleresponse[0].TakerBuyBaseAssetVolume;
+        //                candle.TakerBuyQuoteAssetVolume = candleresponse[0].TakerBuyQuoteAssetVolume;
+        //                candle.Change = pricechangeresponse.PriceChange;
+        //                candle.PriceChangePercent = pricechangeresponse.PriceChangePercent;
+        //                candle.WeightedAveragePercent = pricechangeresponse.PriceChangePercent;
+        //                candle.PreviousClosePrice = pricechangeresponse.PreviousClosePrice;
+        //                candle.CurrentPrice = pricechangeresponse.LastPrice;
+        //                candle.OpenPrice = pricechangeresponse.OpenPrice;
+        //                candle.DayHighPrice = pricechangeresponse.HighPrice;
+        //                candle.DayLowPrice = pricechangeresponse.LowPrice;
+        //                candle.DayVolume = pricechangeresponse.Volume;
+        //                candle.DayTradeCount = pricechangeresponse.TradeCount;
+        //                // candle.DataSet = candlecurrentSet;
+
+        //                var isCandleExisting = await candledb.Candle.Where(x => x.OpenTime == candle.OpenTime && x.Symbol == candle.Symbol).FirstOrDefaultAsync();
+
+        //                if (isCandleExisting == null)
+        //                {
+        //                    candles.Add(candle);
+        //                    await candledb.Candle.AddAsync(candle);
+        //                    await candledb.SaveChangesAsync();
+        //                }
+        //                else
+        //                {
+
+        //                    candledb.Candle.Update(isCandleExisting);
+        //                    await candledb.SaveChangesAsync();
+        //                }
+        //            }
+        //        }
+
+        //        counter.IsCandleBeingUpdated = false;
+
+        //        candledb.Counter.Update(counter);
+        //        await candledb.SaveChangesAsync();
+        //        logger.Info("Getting Candle Completed at " + DateTime.Now);
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        logger.Info("Exception in Getting Candle  " + ex.Message);
+        //        counter.IsCandleBeingUpdated = false;
+        //        candledb.Counter.Update(counter);
+        //        await candledb.SaveChangesAsync();
+
+        //    }
+        //    return candles;
+        //}
+
+
+        //private async void btnCollectData_Click(object sender, RoutedEventArgs e)
+        //{
+        //    logger.Info("Collect Data Started at " + DateTime.Now);
+
+        //    var files = Directory.EnumerateFiles(@"C:\Shatlin\klines", "*.csv");
+        //    var epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+
+        //    int i = 1;
+        //    foreach (string file in files)
+        //    {
+        //        using (var candledb = new DB())
+        //        {
+
+        //            i++;
+        //            string filename = file.Split('-')[0];
+        //            filename = filename.Substring(filename.LastIndexOf("\\") + 1);
+        //            using (var reader = new StreamReader(file))
+        //            {
+        //                while (!reader.EndOfStream)
+        //                {
+        //                    string line = reader.ReadLine();
+        //                    string[] values = line.Split(",");
+        //                    Candle candle = new Candle();
+        //                    candle.Symbol = filename;
+        //                    double d = Convert.ToDouble(values[0].ToString());
+        //                    candle.RecordedTime = DateTime.Now;
+        //                    candle.OpenTime = Convert.ToDateTime(epoch.AddMilliseconds(Convert.ToDouble(values[0])));
+        //                    candle.Open = Convert.ToDecimal(values[1]);
+        //                    candle.High = Convert.ToDecimal(values[2]);
+        //                    candle.Low = Convert.ToDecimal(values[3]);
+        //                    candle.Close = Convert.ToDecimal(values[4]);
+        //                    candle.Volume = Convert.ToDecimal(values[5]);
+        //                    candle.CloseTime = Convert.ToDateTime(epoch.AddMilliseconds(Convert.ToDouble(values[6])));
+        //                    candle.QuoteAssetVolume = Convert.ToDecimal(values[7]);
+        //                    candle.NumberOfTrades = Convert.ToInt32(values[8]);
+        //                    candle.TakerBuyBaseAssetVolume = Convert.ToDecimal(values[9]);
+        //                    candle.TakerBuyQuoteAssetVolume = Convert.ToDecimal(values[10]);
+        //                    candle.Change = 0.0M;
+        //                    candle.PriceChangePercent = 0.0M;
+        //                    candle.WeightedAveragePercent = 0.0M;
+        //                    candle.PreviousClosePrice = 0.0M;
+        //                    candle.CurrentPrice = candle.Close;
+        //                    candle.OpenPrice = candle.Open;
+        //                    candle.DayHighPrice = 0.0M;
+        //                    candle.DayLowPrice = 0.0M;
+        //                    candle.DayVolume = 0.0M;
+        //                    candle.DayTradeCount = 0;
+
+
+        //                    await candledb.AddAsync(candle);
+
+        //                }
+
+        //                logger.Info(i + " : " + file + " Processing Completed ");
+
+
+        //            }
+        //            await candledb.SaveChangesAsync();
+        //        }
+        //    }
+
+        //    logger.Info("----------All file Processing Completed-------------- ");
+        //    await UpdateData();
+        //}
+
+        //private async Task UpdateData()
+        //{
+        //    DateTime currentdate = new DateTime(2021, 3, 1, 0, 0, 0);
+        //    DateTime lastdate = new DateTime(2021, 6, 15, 23, 0, 0);
+
+
+        //    while (currentdate <= lastdate)
+        //    {
+        //        using (var TradeDB = new DB())
+        //        {
+
+        //            List<Candle> selectedCandles;
+        //            List<MyCoins> myTradeFavouredCoins = await TradeDB.MyCoins.AsNoTracking().ToListAsync();
+
+        //            try
+        //            {
+        //                foreach (var favtrade in myTradeFavouredCoins)
+        //                {
+
+        //                    selectedCandles = await TradeDB.Candle.Where(x => x.Symbol.Contains(favtrade.Coin) && x.OpenTime.Date == currentdate.Date
+        //                    ).ToListAsync();
+
+        //                    if (selectedCandles == null || selectedCandles.Count == 0) continue;
+
+        //                    foreach (var candle in selectedCandles)
+        //                    {
+        //                        candle.DayHighPrice = selectedCandles.Max(x => x.High);
+        //                        candle.DayLowPrice = selectedCandles.Min(x => x.Low);
+        //                        candle.DayVolume = selectedCandles.Sum(x => x.Volume);
+        //                        candle.DayTradeCount = selectedCandles.Sum(x => x.NumberOfTrades);
+        //                        TradeDB.Candle.Update(candle);
+        //                    }
+        //                    await TradeDB.SaveChangesAsync();
+        //                }
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                logger.Error(" Updating candle error " + ex.Message);
+        //            }
+
+        //        }
+
+        //        currentdate = currentdate.AddDays(1);
+        //    }
+
+        //    logger.Info(" Updating data Completed ");
+        //}
+
+        //private async void btnTrade_Click(object sender, RoutedEventArgs e)
+        //{
+
+        //    await Trade();
+        //}
+
+
+        //private async void CandleDataRetrieverTimer_Tick(object sender, EventArgs e)
+        //{
+        //    await GetCandles();
+        //}
+
+        //private async void CandleDailyDataRetrieverTimer_Tick(object sender, EventArgs e)
+        //{
+        //    await GetCandlesOnceaDay();
+        //}
+
+     
+
+
+
+
+
+        //private async Task GetMyTrades()
+        //{
+        //    DB TradeDB = new DB();
+        //    foreach (var coin in MyTradedCoinList)
+        //    {
+        //        try
+        //        {
+        //            List<AccountTradeReponse> accountTrades = await client.GetAccountTrades(new AllTradesRequest()
+        //            {
+        //                Limit = 50,
+        //                Symbol = coin
+        //            });
+
+        //            foreach (var trade in accountTrades)
+        //            {
+        //                var mytrade = new MyTrade
+        //                {
+        //                    Price = trade.Price,
+        //                    Pair = coin,
+        //                    Quantity = trade.Quantity,
+        //                    Commission = trade.Commission,
+        //                    CommissionAsset = trade.CommissionAsset,
+        //                    Time = trade.Time,
+        //                    IsBuyer = trade.IsBuyer,
+        //                    IsMaker = trade.IsMaker,
+        //                    IsBestMatch = trade.IsBestMatch,
+        //                    OrderId = trade.OrderId,
+        //                    Amount = trade.Quantity * trade.Price + (trade.Quantity * trade.Price) * 0.075M / 100
+        //                };
+        //                await TradeDB.MyTrade.AddAsync(mytrade);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+
+        //            logger.Error("Error while retrieving price ticker for " + coin + " " + ex.Message);
+        //        }
+        //    }
+        //    await TradeDB.SaveChangesAsync();
+        //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //private async Task GetPrices()
+        //{
+        //    var prices = await client.GetAllPrices();
+        //    foreach (var price in prices)
+        //    {
+
+        //        if ((price.Symbol.Contains("BUSD") && !price.Symbol.Contains("USDT")) || (price.Symbol.Contains("USDT") && !price.Symbol.Contains("BUSD")))
+        //        {
+        //            try
+        //            {
+        //                var pr = new Price
+        //                {
+        //                    date = DateTime.Now,
+        //                    pair = price.Symbol,
+        //                    price = price.Price
+        //                };
+        //                await db.Price.AddAsync(pr);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                logger.Error("Exception at Get Prices  " + ex.Message);
+        //            }
+        //        }
+        //    }
+        //    await db.SaveChangesAsync();
+        //}
+
+        //private async Task GetCandlesOnceaDay()
+        //{
+        //    logger.Info("Getting Daily Candle Started at " + DateTime.Now);
+        //    DB candledb = new DB();
+        //    var prices = await client.GetAllPrices();
+        //    await UpdateBalance(prices);
+
+
+        //    foreach (var price in prices)
+        //    {
+
+        //        if (
+        //             price.Symbol.Contains("UPUSDT") || price.Symbol.Contains("DOWNUSDT") ||
+        //             price.Symbol.Contains("UPBUSD") || price.Symbol.Contains("DOWNBUSD") ||
+        //              price.Symbol.Contains("UPUSDC") || price.Symbol.Contains("DOWNUSDC") ||
+        //             price.Symbol.Contains("BEARBUSD") || price.Symbol.Contains("BULLBUSD") ||
+        //             price.Symbol.Contains("BEARUSDT") || price.Symbol.Contains("BULLUSDT") ||
+        //             price.Symbol.Contains("BEARUSDC") || price.Symbol.Contains("BULLUSDC")
+        //            )
+        //        {
+        //            continue;
+        //        }
+
+        //        if (!price.Symbol.Contains("BUSD") && !price.Symbol.Contains("USDT") && !price.Symbol.Contains("USDC")) // if the price symbol doesnt contain usdt and busd ignore those coins
+
+        //        {
+        //            continue;
+        //        }
+
+        //        DailyCandle dailycandle = new DailyCandle();
+        //        var pricechangeresponse = await client.GetDailyTicker(price.Symbol);
+        //        GetKlinesCandlesticksRequest cr = new GetKlinesCandlesticksRequest();
+        //        cr.Limit = 1;
+        //        cr.Symbol = price.Symbol;
+        //        cr.Interval = KlineInterval.OneDay;
+        //        var candleresponse = await client.GetKlinesCandlesticks(cr);
+        //        dailycandle.RecordedTime = DateTime.Now;
+        //        dailycandle.Symbol = price.Symbol;
+        //        dailycandle.Open = candleresponse[0].Open;
+        //        dailycandle.OpenTime = candleresponse[0].OpenTime.AddHours(hourDifference);
+        //        dailycandle.High = candleresponse[0].High;
+        //        dailycandle.Low = candleresponse[0].Low;
+        //        dailycandle.Close = candleresponse[0].Close;
+        //        dailycandle.Volume = candleresponse[0].Volume;
+        //        dailycandle.CloseTime = candleresponse[0].CloseTime.AddHours(hourDifference);
+        //        dailycandle.QuoteAssetVolume = candleresponse[0].QuoteAssetVolume;
+        //        dailycandle.NumberOfTrades = candleresponse[0].NumberOfTrades;
+        //        dailycandle.TakerBuyBaseAssetVolume = candleresponse[0].TakerBuyBaseAssetVolume;
+        //        dailycandle.TakerBuyQuoteAssetVolume = candleresponse[0].TakerBuyQuoteAssetVolume;
+        //        dailycandle.Change = pricechangeresponse.PriceChange;
+        //        dailycandle.PriceChangePercent = pricechangeresponse.PriceChangePercent;
+        //        dailycandle.WeightedAveragePercent = pricechangeresponse.PriceChangePercent;
+        //        dailycandle.PreviousClosePrice = pricechangeresponse.PreviousClosePrice;
+        //        dailycandle.CurrentPrice = pricechangeresponse.LastPrice;
+        //        dailycandle.OpenPrice = pricechangeresponse.OpenPrice;
+        //        dailycandle.DayHighPrice = pricechangeresponse.HighPrice;
+        //        dailycandle.DayLowPrice = pricechangeresponse.LowPrice;
+        //        dailycandle.DayVolume = pricechangeresponse.Volume;
+        //        dailycandle.DayTradeCount = pricechangeresponse.TradeCount;
+
+        //        var isCandleExisting = await candledb.DailyCandle.Where(x => x.OpenTime == dailycandle.OpenTime && x.Symbol == dailycandle.Symbol).FirstOrDefaultAsync();
+
+        //        if (isCandleExisting == null)
+        //        {
+        //            await candledb.DailyCandle.AddAsync(dailycandle);
+        //            await candledb.SaveChangesAsync();
+        //        }
+
+
+        //    }
+
+
+        //    var counters = await candledb.Counter.FirstOrDefaultAsync();
+
+        //    candledb.Counter.Update(counters);
+        //    await candledb.SaveChangesAsync();
+        //    logger.Info("Getting Daily Candle Completed at " + DateTime.Now);
+        //}
+
+        //private async Task<List<Signal>> GetSignals(DateTime cndlHr)
+        //{
+
+        //    DB TradeDB = new DB();
+
+        //    List<Signal> signals = new List<Signal>();
+
+        //    List<Candle> latestCndls = await TradeDB.Candle.AsNoTracking().Where(x => x.OpenTime == cndlHr).ToListAsync();
+
+        //    // DateTime refCandlMinTime = currentCandleSetDate.AddHours(-23);
+
+        //    List<Candle> refCndls = await TradeDB.Candle.AsNoTracking()
+        //        .Where(x => x.OpenTime >= cndlHr.AddHours(-23) && x.OpenTime < cndlHr).ToListAsync();
+
+        //    foreach (var myfavcoin in myCoins)
+        //    {
+
+        //        try
+        //        {
+        //            #region Prefer BUSD if not available go for USDT
+
+        //            List<string> usdStrings = new List<string>()
+        //                { myfavcoin.Coin + "USDT", myfavcoin.Coin + "BUSD", myfavcoin.Coin + "USDC" };
+
+        //            var usdCndlList = latestCndls.Where(x => usdStrings.Contains(x.Symbol));
+
+        //            if (usdCndlList == null) continue;
+
+        //            var busdcandle = usdCndlList.Where(x => x.Symbol == myfavcoin.Coin + "BUSD").FirstOrDefault();
+
+        //            Signal sig = new Signal();
+
+        //            if (busdcandle != null) sig.Symbol = busdcandle.Symbol;
+        //            else sig.Symbol = myfavcoin.Coin + "USDT";
+
+        //            var selCndl = usdCndlList.Where(x => x.Symbol == sig.Symbol).FirstOrDefault();
+
+        //            if (selCndl == null) continue;
+
+        //            var usdRefCndls = refCndls.Where(x => usdStrings.Contains(x.Symbol));
+
+        //            if (usdRefCndls == null || usdRefCndls.Count() == 0) continue;
+
+        //            #endregion
+
+        //            sig.CurrPr = selCndl.CurrentPrice;
+        //            sig.DayHighPr = selCndl.DayHighPrice;
+        //            sig.DayLowPr = selCndl.DayLowPrice;
+        //            sig.CandleOpenTime = selCndl.OpenTime;
+        //            sig.CandleId = selCndl.Id;
+        //            sig.DayVol = usdCndlList.Sum(x => x.DayVolume);
+        //            sig.DayTradeCount = usdCndlList.Sum(x => x.DayTradeCount);
+        //            sig.RefHighPr = usdRefCndls.Max(x => x.CurrentPrice);
+        //            sig.RefLowPr = usdRefCndls.Min(x => x.CurrentPrice);
+        //            sig.RefAvgCurrPr = usdRefCndls.Average(x => x.CurrentPrice);
+        //            sig.RefDayVol = usdRefCndls.Average(x => x.DayVolume);
+        //            sig.RefDayTradeCount = (int)usdRefCndls.Average(x => x.DayTradeCount);
+
+        //            sig.DayPrDiffPercentage = sig.DayHighPr.GetDiffPerc(sig.DayLowPr);
+        //            sig.PrDiffCurrAndHighPerc = Math.Abs(sig.DayHighPr.GetDiffPerc(sig.CurrPr));
+        //            sig.PrDiffCurrAndLowPerc = Math.Abs(sig.DayLowPr.GetDiffPerc(sig.CurrPr));
+        //            // this will always be positive. You need to first target those coins which are 
+        //            //closest to low price. Dont worry about trade count for now
+
+        //            sig.CurrPrDiffSigAndRef = sig.CurrPr.GetDiffPerc(sig.RefAvgCurrPr);
+        //            //Difference between current price and the average current prices of last 24 hours
+
+        //            var dayAveragePrice = (sig.DayHighPr + sig.DayLowPr) / 2;
+
+        //            if (sig.CurrPr < dayAveragePrice) sig.IsCloseToDayLow = true;
+
+        //            else sig.IsCloseToDayHigh = true;
+
+        //            signals.Add(sig);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            logger.Error("Error in signal Generator " + ex.Message);
+        //        }
+        //    }
+
+        //    return signals.OrderBy(x => x.PrDiffCurrAndLowPerc).ToList();
+        //}
+
+
+
+
     }
 
 }

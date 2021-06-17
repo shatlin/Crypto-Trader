@@ -1,20 +1,20 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Trader.Migrations
+namespace Trader2.Migrations
 {
-    public partial class m10 : Migration
+    public partial class m33 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "DailyCandle",
+                name: "Candle15",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Symbol = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RecordedTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RecordedTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OpenTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Open = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
                     High = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
@@ -35,19 +35,18 @@ namespace Trader.Migrations
                     PriceChangePercent = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
                     WeightedAveragePercent = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
                     PreviousClosePrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    OpenPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    DataSet = table.Column<int>(type: "int", nullable: false)
+                    OpenPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DailyCandle", x => x.Id);
+                    table.PrimaryKey("PK_Candle15", x => x.Id);
                 });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "DailyCandle");
+                name: "Candle15");
         }
     }
 }

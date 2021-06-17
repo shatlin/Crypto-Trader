@@ -13,8 +13,8 @@
                     <Setter Property="Foreground" Value="White" />
                     <Setter Property="BorderBrush" Value="White"/>
                     <Setter Property="BorderThickness" Value="1 1 1 1"/>
-                    <Setter Property="Height" Value="50" />
-                    <Setter Property="FontSize" Value="23"/>
+                    <Setter Property="Height" Value="35" />
+                    <Setter Property="FontSize" Value="20"/>
                     <Setter Property="FontWeight" Value="DemiBold"/>
                     <Setter Property="Width" Value="auto"/>
                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -26,8 +26,8 @@
             <Setter.Value>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Height" Value="45"/>
-                    <Setter Property="FontSize" Value="25"/>
+                    <Setter Property="Height" Value="35"/>
+                    <Setter Property="FontSize" Value="22"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="Template" Value="{DynamicResource DataGridRowControlTemplate1}"/>
                     <Style.Triggers>

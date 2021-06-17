@@ -8,12 +8,11 @@ using System.Threading.Tasks;
 
 namespace Trader.Models
 {
-    public static class Rates
+    public class MyCoins
     {
-        public static decimal BNB
-        {
-            get { return 500.0M; }
-        }
+        public int Id { get; set; }
+        public string Coin { get; set; }
+        
     }
 
    

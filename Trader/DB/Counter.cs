@@ -11,12 +11,8 @@ namespace Trader.Models
     public class Counter
     {
         public int Id { get; set; }
-        public int CandleCurrentSet { get; set; }
-        public int DailyCandleCurrentSet { get; set; }
-        public DateTime CandleLastUpdatedTime { get; set; }
-        public DateTime DailyCandleLastUpdatedTime { get; set; }
-        public bool IsCandleCurrentlyBeingUpdated { get; set; }
-        public bool IsDailyCandleCurrentlyBeingUpdated { get; set; }
+        public bool IsCandleBeingUpdated { get; set; }
+        public bool IsDailyCandleBeingUpdated { get; set; }
     }
 
    
