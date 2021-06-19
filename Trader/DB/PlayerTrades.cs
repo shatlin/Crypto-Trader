@@ -7,12 +7,10 @@ using Newtonsoft.Json;
 
 namespace BinanceExchange.API.Models.Response
 {
-    public class PlayerHist
+    public class PlayerTrades
     {
 
         public int Id { get; set; }
-
-        public int Order { get; set; }
 
         public string Name { get; set; }
 
@@ -67,8 +65,6 @@ namespace BinanceExchange.API.Models.Response
 
         public DateTime? UpdatedTime { get; set; }
 
-        public int SellWhenNotSoldForDays { get; set; }
-
         public decimal? TotalExpectedProfit { get; set; }
 
         public DateTime? CandleOpenTimeAtBuy { get; set; }
@@ -84,9 +80,9 @@ namespace BinanceExchange.API.Models.Response
         public decimal SaleProfitOrLoss { get; set; }
     }
 
-    public partial class PlayerHistConfiguration : IEntityTypeConfiguration<PlayerHist>
+    public partial class PlayerHistConfiguration : IEntityTypeConfiguration<PlayerTrades>
     {
-        public void Configure(EntityTypeBuilder<PlayerHist> builder)
+        public void Configure(EntityTypeBuilder<PlayerTrades> builder)
         {
             builder.Property(e => e.BuyOrSell).IsRequired(false);
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
@@ -109,7 +105,6 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.TotalSoldAmount).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalExpectedProfit).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SellAbovePerc).IsRequired().HasColumnType("decimal(30, 12)");
-
             builder.Property(e => e.SaleProfitOrLoss).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.LossOrProfit).IsRequired(false);
 

@@ -10,7 +10,7 @@ using Trader.Models;
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    [Migration("20210616085104_m1")]
+    [Migration("20210619150034_m1")]
     partial class m1
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -141,87 +141,6 @@ namespace Trader2.Migrations
                     b.ToTable("Candle");
                 });
 
-            modelBuilder.Entity("BinanceExchange.API.Models.Response.DailyCandle", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("Change")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("Close")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<DateTime>("CloseTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("DayHighPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("DayLowPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<int>("DayTradeCount")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("DayVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("High")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("Low")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<int>("NumberOfTrades")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Open")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("OpenPrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<DateTime>("OpenTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("PreviousClosePrice")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("PriceChangePercent")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.Property<decimal>("QuoteAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<DateTime?>("RecordedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Symbol")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TakerBuyBaseAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("TakerBuyQuoteAssetVolume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("Volume")
-                        .HasColumnType("decimal(23,4)");
-
-                    b.Property<decimal>("WeightedAveragePercent")
-                        .HasColumnType("decimal(18,9)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DailyCandle");
-                });
-
             modelBuilder.Entity("BinanceExchange.API.Models.Response.MyTrade", b =>
                 {
                     b.Property<int>("Id")
@@ -329,6 +248,9 @@ namespace Trader2.Migrations
                     b.Property<bool>("IsTrading")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LossOrProfit")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -347,6 +269,9 @@ namespace Trader2.Migrations
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal>("QuantitySold")
+                        .HasColumnType("decimal(30,12)");
+
+                    b.Property<decimal>("SaleProfitOrLoss")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellAbovePerc")
@@ -401,7 +326,7 @@ namespace Trader2.Migrations
                     b.ToTable("Player");
                 });
 
-            modelBuilder.Entity("BinanceExchange.API.Models.Response.PlayerHist", b =>
+            modelBuilder.Entity("BinanceExchange.API.Models.Response.PlayerTrades", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -463,6 +388,9 @@ namespace Trader2.Migrations
                     b.Property<bool>("IsTrading")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LossOrProfit")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -481,6 +409,9 @@ namespace Trader2.Migrations
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal>("QuantitySold")
+                        .HasColumnType("decimal(30,12)");
+
+                    b.Property<decimal>("SaleProfitOrLoss")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellAbovePerc")
@@ -532,7 +463,7 @@ namespace Trader2.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PlayerHist");
+                    b.ToTable("PlayerTrades");
                 });
 
             modelBuilder.Entity("Trader.Models.APIDetails", b =>
@@ -551,24 +482,6 @@ namespace Trader2.Migrations
                     b.HasKey("id");
 
                     b.ToTable("API");
-                });
-
-            modelBuilder.Entity("Trader.Models.Counter", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<bool>("IsCandleBeingUpdated")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDailyCandleBeingUpdated")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Counter");
                 });
 
             modelBuilder.Entity("Trader.Models.MyCoins", b =>

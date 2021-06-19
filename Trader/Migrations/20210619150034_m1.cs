@@ -78,55 +78,6 @@ namespace Trader2.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Counter",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IsCandleBeingUpdated = table.Column<bool>(type: "bit", nullable: false),
-                    IsDailyCandleBeingUpdated = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Counter", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DailyCandle",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Symbol = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RecordedTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    OpenTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Open = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    High = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    Low = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    Close = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    Volume = table.Column<decimal>(type: "decimal(23,4)", nullable: false),
-                    CloseTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    QuoteAssetVolume = table.Column<decimal>(type: "decimal(23,4)", nullable: false),
-                    NumberOfTrades = table.Column<int>(type: "int", nullable: false),
-                    TakerBuyBaseAssetVolume = table.Column<decimal>(type: "decimal(23,4)", nullable: false),
-                    TakerBuyQuoteAssetVolume = table.Column<decimal>(type: "decimal(23,4)", nullable: false),
-                    CurrentPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    DayLowPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    DayHighPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    DayVolume = table.Column<decimal>(type: "decimal(23,4)", nullable: false),
-                    DayTradeCount = table.Column<int>(type: "int", nullable: false),
-                    Change = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    PriceChangePercent = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    WeightedAveragePercent = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    PreviousClosePrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false),
-                    OpenPrice = table.Column<decimal>(type: "decimal(18,9)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DailyCandle", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MyCoins",
                 columns: table => new
                 {
@@ -202,7 +153,9 @@ namespace Trader2.Migrations
                     CandleOpenTimeAtBuy = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CandleOpenTimeAtSell = table.Column<DateTime>(type: "datetime2", nullable: true),
                     BuyCandleId = table.Column<int>(type: "int", nullable: false),
-                    SellCandleId = table.Column<int>(type: "int", nullable: false)
+                    SellCandleId = table.Column<int>(type: "int", nullable: false),
+                    LossOrProfit = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SaleProfitOrLoss = table.Column<decimal>(type: "decimal(30,12)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -210,7 +163,7 @@ namespace Trader2.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlayerHist",
+                name: "PlayerTrades",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -249,11 +202,13 @@ namespace Trader2.Migrations
                     CandleOpenTimeAtBuy = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CandleOpenTimeAtSell = table.Column<DateTime>(type: "datetime2", nullable: true),
                     BuyCandleId = table.Column<int>(type: "int", nullable: false),
-                    SellCandleId = table.Column<int>(type: "int", nullable: false)
+                    SellCandleId = table.Column<int>(type: "int", nullable: false),
+                    LossOrProfit = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SaleProfitOrLoss = table.Column<decimal>(type: "decimal(30,12)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PlayerHist", x => x.Id);
+                    table.PrimaryKey("PK_PlayerTrades", x => x.Id);
                 });
         }
 
@@ -269,12 +224,6 @@ namespace Trader2.Migrations
                 name: "Candle");
 
             migrationBuilder.DropTable(
-                name: "Counter");
-
-            migrationBuilder.DropTable(
-                name: "DailyCandle");
-
-            migrationBuilder.DropTable(
                 name: "MyCoins");
 
             migrationBuilder.DropTable(
@@ -284,7 +233,7 @@ namespace Trader2.Migrations
                 name: "Player");
 
             migrationBuilder.DropTable(
-                name: "PlayerHist");
+                name: "PlayerTrades");
         }
     }
 }

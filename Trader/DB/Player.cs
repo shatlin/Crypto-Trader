@@ -12,8 +12,6 @@ namespace BinanceExchange.API.Models.Response
        
         public int Id { get; set; }
 
-        public int Order { get; set; }
-
         public string Name { get; set; }
 
         public string Avatar { get; set; }
@@ -66,8 +64,6 @@ namespace BinanceExchange.API.Models.Response
         public DateTime? CreatedDate { get; set; }
 
         public DateTime? UpdatedTime { get; set; }
-
-        public int SellWhenNotSoldForDays { get; set; }
 
         public decimal? TotalExpectedProfit { get; set; }
 

@@ -15,26 +15,23 @@ namespace Trader.Models
 
         public DB()
         {
-
             Database.SetCommandTimeout(new TimeSpan(0,0,120));
             // Database.EnsureCreated();
         }
 
         public DbSet<APIDetails> API { get; set; }
         public DbSet<Balance> Balance { get; set; }
-        public DbSet<Candle> Candles { get; set; }
-        public DbSet<DailyCandle> DailyCandle { get; set; }
+        public DbSet<Candle> Candle { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
         public DbSet<MyCoins> MyCoins { get; set; }
-        public DbSet<Counter> Counter { get; set; }
         public DbSet<Player> Player { get; set; }
-        public DbSet<PlayerHist> PlayerHist { get; set; }
+        public DbSet<PlayerTrades> PlayerTrades { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance3;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance-QA;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -46,7 +43,6 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new MyTradeConfiguration());
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
-            modelBuilder.ApplyConfiguration(new DailyCandleConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
         }
