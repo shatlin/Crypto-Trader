@@ -22,8 +22,7 @@ namespace Trader.Models
 
         public DbSet<APIDetails> API { get; set; }
         public DbSet<Balance> Balance { get; set; }
-        public DbSet<Candle> Candle { get; set; }
-        public DbSet<Candle15> Candle15 { get; set; }
+        public DbSet<Candle> Candles { get; set; }
         public DbSet<DailyCandle> DailyCandle { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
         public DbSet<MyCoins> MyCoins { get; set; }
@@ -35,7 +34,7 @@ namespace Trader.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance2;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance3;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -47,7 +46,6 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new MyTradeConfiguration());
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
-            modelBuilder.ApplyConfiguration(new Candle15Configuration());
             modelBuilder.ApplyConfiguration(new DailyCandleConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());

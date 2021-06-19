@@ -39,6 +39,7 @@ namespace Trader.Models
         public bool IsIgnored { get; set; }
         public int CandleId { get; set; }
         public DateTime CandleOpenTime { get; set; }
+        public DateTime CandleCloseTime { get; set; }
     }
 
    

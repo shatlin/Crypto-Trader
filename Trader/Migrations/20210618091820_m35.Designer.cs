@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210618091820_m35")]
+    partial class m35
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -327,9 +329,6 @@ namespace Trader2.Migrations
                     b.Property<bool>("IsTrading")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LossOrProfit")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -348,9 +347,6 @@ namespace Trader2.Migrations
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal>("QuantitySold")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("SaleProfitOrLoss")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellAbovePerc")
@@ -467,9 +463,6 @@ namespace Trader2.Migrations
                     b.Property<bool>("IsTrading")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LossOrProfit")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -488,9 +481,6 @@ namespace Trader2.Migrations
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal>("QuantitySold")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("SaleProfitOrLoss")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellAbovePerc")

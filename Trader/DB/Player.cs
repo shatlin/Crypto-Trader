@@ -78,6 +78,10 @@ namespace BinanceExchange.API.Models.Response
         public int BuyCandleId { get; set; }
 
         public int SellCandleId { get; set; }
+
+        public string LossOrProfit { get; set; }
+
+        public decimal SaleProfitOrLoss { get; set; }
     }
 
     public partial class PlayerConfiguration : IEntityTypeConfiguration<Player>
@@ -105,6 +109,8 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.SoldCommision).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalSoldAmount).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalExpectedProfit).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.SaleProfitOrLoss).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.LossOrProfit).IsRequired(false);
         }
 
     }
