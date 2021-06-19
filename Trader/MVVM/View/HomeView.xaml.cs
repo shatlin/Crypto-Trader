@@ -456,7 +456,6 @@ namespace Trader.MVVM.View
 
                 if (player.IsTrading)
                 {
-
                     logger.Info("  " + candleCloseTime + " " + player.Name + player.Avatar + " currently occupied");
 
                     var playersSignal = CurrentSignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
@@ -526,6 +525,7 @@ namespace Trader.MVVM.View
                         #endregion log the buy
 
                         var mybuyPrice= sig.CurrPr - (sig.CurrPr*0.07M/100); // setting the buy price to a tiny amount lesser than the current price.
+                        player.Pair = sig.Symbol;
 
                         // Create an order with varying options
                         var createOrder = await client.CreateOrder(new CreateOrderRequest()
@@ -538,7 +538,7 @@ namespace Trader.MVVM.View
                         });
 
                         player.IsTrading = true;
-                        player.Pair = sig.Symbol;
+                     
                         player.DayHigh = sig.DayHighPr;
                         player.DayLow = sig.DayLowPr;
                         player.BuyPricePerCoin = mybuyPrice;
