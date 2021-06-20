@@ -53,12 +53,12 @@ namespace Trader.MVVM.View
         public DispatcherTimer TraderTimer;
         public DispatcherTimer CandleDailyDataRetrieverTimer;
         public string ProcessingTime { get; set; }
-
         public bool isProd = false;
 
         public int totalConsecutivelosses = 0;
         int totalcurrentPauses = 0;
-        int maxTotalPauses=16;
+        int maxTotalPauses=3;
+
         BinanceClient client;
         ILog logger;
         int intervalMins = 15;
@@ -354,7 +354,7 @@ namespace Trader.MVVM.View
                 }
 
               
-                logger.Info("");
+                
             }
             catch (Exception ex)
             {
@@ -364,6 +364,7 @@ namespace Trader.MVVM.View
            
             await candledb.SaveChangesAsync();
             logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+            logger.Info("");
             return candles;
         }
 
@@ -1784,7 +1785,9 @@ namespace Trader.MVVM.View
                 else  // 3 last trades lost money, so its a downward trend. Wait for maxpauses reps (15 mins) before buying. Keep tracking to sell.
                 {
                     logger.Info("Last 3 sells were at loss. Lets wait for " + (maxTotalPauses - totalcurrentPauses) * 15 + " more minutes before attempting to buy again");
+
                     totalcurrentPauses += 1;
+
                     if (totalcurrentPauses >= maxTotalPauses) 
                     {
                         logger.Info("Wait times over. Resetting losses and starting to trade again");
