@@ -269,7 +269,7 @@ namespace Trader.MVVM.View
 
         private async Task<List<Candle>> GetCandle_Prod()
         {
-            logger.Info("Getting Candle Started at " + DateTime.Now.ToString("dd-MMM HH.mm"));
+            logger.Info("Getting Candle Started at " + DateTime.Now.ToString("dd-MMM HH:mm"));
             DB candledb = new DB();
             List<Candle> candles = new List<Candle>();
 
@@ -282,29 +282,46 @@ namespace Trader.MVVM.View
                     Candle candle = new Candle();
                     var pricechangeresponse = await client.GetDailyTicker(pair);
 
-                    var candleRequest = new GetKlinesCandlesticksRequest
-                    {
-                        Limit = 1,
-                        Symbol = pair,
-                        Interval = KlineInterval.FifteenMinutes
-                    };
+                    #region old candlerequest Code. I dont need it for my logic
+                    //var candleRequest = new GetKlinesCandlesticksRequest
+                    //{
+                    //    Limit = 1,
+                    //    Symbol = pair,
+                    //    Interval = KlineInterval.FifteenMinutes
+                    //};
 
-                    var candleResponse = await client.GetKlinesCandlesticks(candleRequest);
-                    var firstCandle = candleResponse[0];
+                    //var candleResponse = await client.GetKlinesCandlesticks(candleRequest);
+                    //var firstCandle = candleResponse[0];
+
+                    //candle.RecordedTime = DateTime.Now;
+                    //candle.Symbol = pair;
+                    //candle.Open = firstCandle.Open;
+                    //candle.OpenTime = firstCandle.OpenTime.AddHours(hourDifference);
+                    //candle.High = firstCandle.High;
+                    //candle.Low = firstCandle.Low;
+                    //candle.Close = firstCandle.Close;
+                    //candle.Volume = firstCandle.Volume;
+                    //candle.CloseTime = firstCandle.CloseTime.AddHours(hourDifference);
+                    //candle.QuoteAssetVolume = firstCandle.QuoteAssetVolume;
+                    //candle.NumberOfTrades = firstCandle.NumberOfTrades;
+                    //candle.TakerBuyBaseAssetVolume = firstCandle.TakerBuyBaseAssetVolume;
+                    //candle.TakerBuyQuoteAssetVolume = firstCandle.TakerBuyQuoteAssetVolume;
+                    #endregion old candlerequest Code. I dont need it for my logic
 
                     candle.RecordedTime = DateTime.Now;
                     candle.Symbol = pair;
-                    candle.Open = firstCandle.Open;
-                    candle.OpenTime = firstCandle.OpenTime.AddHours(hourDifference);
-                    candle.High = firstCandle.High;
-                    candle.Low = firstCandle.Low;
-                    candle.Close = firstCandle.Close;
-                    candle.Volume = firstCandle.Volume;
-                    candle.CloseTime = firstCandle.CloseTime.AddHours(hourDifference);
-                    candle.QuoteAssetVolume = firstCandle.QuoteAssetVolume;
-                    candle.NumberOfTrades = firstCandle.NumberOfTrades;
-                    candle.TakerBuyBaseAssetVolume = firstCandle.TakerBuyBaseAssetVolume;
-                    candle.TakerBuyQuoteAssetVolume = firstCandle.TakerBuyQuoteAssetVolume;
+                    candle.Open = 0;
+                    candle.OpenTime = DateTime.Now;
+                    candle.High = 0;
+                    candle.Low = 0;
+                    candle.Close = 0;
+                    candle.Volume = 0;
+                    candle.CloseTime = DateTime.Now;
+                    candle.QuoteAssetVolume = 0;
+                    candle.NumberOfTrades = 0;
+                    candle.TakerBuyBaseAssetVolume = 0;
+                    candle.TakerBuyQuoteAssetVolume = 0;
+
                     candle.Change = pricechangeresponse.PriceChange;
                     candle.PriceChangePercent = pricechangeresponse.PriceChangePercent;
                     candle.WeightedAveragePercent = pricechangeresponse.WeightedAveragePercent;
@@ -324,7 +341,7 @@ namespace Trader.MVVM.View
                     else candledb.Candle.Update(isCandleExisting);
                 }
 
-                logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH.mm"));
+                logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH:mm"));
                 logger.Info("");
             }
             catch (Exception ex)
@@ -488,7 +505,7 @@ namespace Trader.MVVM.View
                     if (boughtCoins.Contains(sig.Symbol))
                     {
                         logger.Info("  " +
-                             sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                             sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                             " " + player.Name + player.Avatar +
                             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " coin already bought. Going to next signal ");
@@ -498,11 +515,16 @@ namespace Trader.MVVM.View
                     if (sig.IsPicked)
                     {
                         logger.Info("  " +
-                        sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                        sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                         " " + player.Name + player.Avatar +
                         " " + sig.Symbol.Replace("USDT", "") +
                         " is picked by another bot. look for another coin ");
 
+                        continue;
+                    }
+
+                    if (sig.IsIgnored) //signal is already checked in this buy cycle, so we are not going to buy. Dont need to check this for another bot
+                    {
                         continue;
                     }
 
@@ -513,7 +535,7 @@ namespace Trader.MVVM.View
                         #region log the buy
 
                         logger.Info("  " +
-                            sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                            sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                           " " + player.Name + player.Avatar +
                          " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                           " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -524,11 +546,14 @@ namespace Trader.MVVM.View
 
                         #endregion log the buy
 
-                        var mybuyPrice= sig.CurrPr - (sig.CurrPr*0.07M/100); // setting the buy price to a tiny amount lesser than the current price.
+                        var PriceResponse=await client.GetPrice(sig.Symbol);
+                        var latestPrice=PriceResponse.Price;
+
+                        var mybuyPrice= latestPrice - (latestPrice * 0.07M/100); // setting the buy price to a tiny amount lesser than the current price.
                         player.Pair = sig.Symbol;
 
                         // Create an order with varying options
-                        var createOrder = await client.CreateOrder(new CreateOrderRequest()
+                        var createOrder = await client.CreateTestOrder(new CreateOrderRequest()
                         {
                             Price = mybuyPrice,
                             Quantity = player.AvailableAmountForTrading.Deci() / mybuyPrice,
@@ -544,8 +569,8 @@ namespace Trader.MVVM.View
                         player.BuyPricePerCoin = mybuyPrice;
                         player.QuantityBought = player.AvailableAmountForTrading / mybuyPrice;
                         player.BuyingCommision = player.AvailableAmountForTrading * 0.075M / 100;
-                        player.TotalBuyCost = player.BuyPricePerCoin * player.QuantityBought + player.BuyingCommision;
-                        player.CurrentPricePerCoin = sig.CurrPr;
+                        player.TotalBuyCost = mybuyPrice * player.QuantityBought + player.BuyingCommision;
+                        player.CurrentPricePerCoin = mybuyPrice;
                         player.TotalCurrentValue = player.AvailableAmountForTrading;
                         player.TotalCurrentProfit = player.AvailableAmountForTrading - player.OriginalAllocatedValue;
                         player.BuyTime = DateTime.Now;
@@ -579,18 +604,20 @@ namespace Trader.MVVM.View
                     {
                         #region log the no buy
 
-                        //logger.Info("  " +
-                        //      sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
-                        //    " " + player.Name + player.Avatar +
-                        //   " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
-                        //    " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
-                        //    " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
-                        //    " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
-                        //    " PrDif Curr & High -" + sig.PrDiffCurrAndHighPerc.Rnd().ToString().PadRight(12, ' ') +
-                        //    " > -" + player.BuyBelowPerc.Deci().Rnd(0) +
-                        //    " Or not close to day low, Not Buying");
+                        logger.Info("  " +
+                              sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
+                            " " + player.Name + player.Avatar +
+                           " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+                            " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
+                            " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
+                            " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
+                            " PrDif Curr & High -" + sig.PrDiffCurrAndHighPerc.Rnd().ToString().PadRight(12, ' ') +
+                            " > -" + player.BuyBelowPerc.Deci().Rnd(0) +
+                            " Or not close to day low, Not Buying");
 
                         #endregion
+
+                        sig.IsIgnored=true;
                     }
                 }
             }
@@ -689,29 +716,31 @@ namespace Trader.MVVM.View
                         continue;
                     }
 
-                    if(player.QuantityBought!=availableQty)
-                    {
-                        logger.Info("  " +
-                           candleCloseTime +
-                           " " + player.Name + player.Avatar +
-                           " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
-                           " Player Quantity Bought " + player.QuantityBought +
-                           " not equal to available qty in Binance " + availableQty +
-                           " its unusal, so wont execute sell order. Check it out");
-                        continue;
-                    }
+                    //if(player.QuantityBought!=availableQty)
+                    //{
+                    //    logger.Info("  " +
+                    //       candleCloseTime +
+                    //       " " + player.Name + player.Avatar +
+                    //       " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
+                    //       " Player Quantity Bought " + player.QuantityBought +
+                    //       " not equal to available qty in Binance " + availableQty +
+                    //       " its unusal, so wont execute sell order. Check it out");
+                    //    continue;
+                    //}
 
-                    var mysellPrice = sig.CurrPr + (sig.CurrPr * 0.07M / 100); // setting the sell price to a tiny amount more than the current price.
+                    var PriceResponse = await client.GetPrice(sig.Symbol);
+                    var latestPrice = PriceResponse.Price;
 
-                    player.SoldCommision = mysellPrice * player.QuantityBought * 0.075M / 100;
-                    player.TotalSoldAmount = mysellPrice * player.QuantityBought - player.SoldCommision;
+                    var mysellPrice = latestPrice + (latestPrice * 0.07M / 100); // setting the sell price to a tiny amount more than the current price.
 
+                    player.QuantityBought = availableQty;
+                    player.SoldCommision = mysellPrice * availableQty * 0.075M / 100;
+                    player.TotalSoldAmount = mysellPrice * availableQty - player.SoldCommision;
 
-                   
-                    var createOrder = await client.CreateOrder(new CreateOrderRequest()
+                    var createOrder = await client.CreateTestOrder(new CreateOrderRequest()
                     {
                         Price = mysellPrice,
-                        Quantity = player.QuantityBought.Deci(),
+                        Quantity = availableQty,
                         Side = OrderSide.Sell,
                         Symbol = player.Pair,
                         Type = OrderType.Limit,
@@ -772,12 +801,12 @@ namespace Trader.MVVM.View
                         player.LossOrProfit = "Loss";
                     }
 
-                    // execute sell order (in live system)
+                   
 
 
-                    PlayerTrades PlayerHist = iMapr.Map<Player, PlayerTrades>(player);
-                    PlayerHist.Id = 0;
-                    await TradeDB.PlayerTrades.AddAsync(PlayerHist);
+                    PlayerTrades PlayerTrades = iMapr.Map<Player, PlayerTrades>(player);
+                    PlayerTrades.Id = 0;
+                    await TradeDB.PlayerTrades.AddAsync(PlayerTrades);
 
                     // reset records to buy again
                     player.DayHigh = 0.0M;
@@ -1020,7 +1049,7 @@ namespace Trader.MVVM.View
 
         private async Task<List<Candle>> GetCandles_QA()
         {
-            logger.Info("Getting Candle Started at " + DateTime.Now.ToString("dd-MMM HH.mm"));
+            logger.Info("Getting Candle Started at " + DateTime.Now.ToString("dd-MMM HH:mm"));
             //#TODO Update bots with current price when getting candles.
 
             DB candledb = new DB();
@@ -1199,7 +1228,7 @@ namespace Trader.MVVM.View
                     }
                 }
 
-                logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH.mm"));
+                logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH:mm"));
                 logger.Info("");
             }
             catch (Exception ex)
@@ -1323,8 +1352,8 @@ namespace Trader.MVVM.View
                 return;
             }
 
-            var candleCloseTime = Signals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH.mm");
-            var candleOpenTime = Signals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH.mm");
+            var candleCloseTime = Signals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm");
+            var candleOpenTime = Signals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH:mm");
 
             logger.Info("Buying scan Started for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
             #region definitions
@@ -1373,7 +1402,7 @@ namespace Trader.MVVM.View
                     if (boughtCoins.Contains(sig.Symbol))
                     {
                         logger.Info("  " +
-                             sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                             sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                             " " + player.Name + player.Avatar +
                             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " coin already bought. Going to next signal ");
@@ -1383,7 +1412,7 @@ namespace Trader.MVVM.View
                     if (sig.IsPicked)
                     {
                         logger.Info("  " +
-                        sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                        sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                         " " + player.Name + player.Avatar +
                         " " + sig.Symbol.Replace("USDT", "") +
                         " is picked by another bot. look for another coin ");
@@ -1403,7 +1432,7 @@ namespace Trader.MVVM.View
                     {
 
                         logger.Info("  " +
-                            sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                            sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                           " " + player.Name + player.Avatar +
                          " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                           " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -1450,7 +1479,7 @@ namespace Trader.MVVM.View
                     else
                     {
                         logger.Info("  " +
-                              sig.CandleCloseTime.ToString("dd-MMM HH.mm") +
+                              sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
                             " " + player.Name + player.Avatar +
                            " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -1482,8 +1511,8 @@ namespace Trader.MVVM.View
                 return;
             }
 
-            var candleCloseTime = Signals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH.mm");
-            var candleOpenTime = Signals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH.mm");
+            var candleCloseTime = Signals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm");
+            var candleOpenTime = Signals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH:mm");
 
 
             logger.Info("Selling scan Started for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
@@ -1683,8 +1712,8 @@ namespace Trader.MVVM.View
             try
             {
                 await GetSignals_Prod();
-                candleOpenTime = CurrentSignals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH.mm");
-                candleCloseTime = CurrentSignals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH.mm");
+                candleOpenTime = CurrentSignals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH:mm");
+                candleCloseTime = CurrentSignals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm");
             }
             catch (Exception ex)
             {
