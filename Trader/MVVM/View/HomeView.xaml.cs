@@ -52,9 +52,7 @@ namespace Trader.MVVM.View
         public DispatcherTimer CandleDataRetrieverTimer;
         public DispatcherTimer TraderTimer;
         public DispatcherTimer CandleDailyDataRetrieverTimer;
-
-        public string candleOpenTime { get; set; }
-        public string candleCloseTime { get; set; }
+        public string ProcessingTime { get; set; }
 
         BinanceClient client;
         ILog logger;
@@ -402,7 +400,7 @@ namespace Trader.MVVM.View
                 return;
             }
 
-            logger.Info("Buying scan Started for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
+            logger.Info("Buying scan Started at " + ProcessingTime);
 
             #region definitions
 
@@ -473,7 +471,7 @@ namespace Trader.MVVM.View
 
                 if (player.IsTrading)
                 {
-                    logger.Info("  " + candleCloseTime + " " + player.Name + player.Avatar + " currently occupied");
+                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " currently occupied");
 
                     var playersSignal = CurrentSignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
 
@@ -492,7 +490,7 @@ namespace Trader.MVVM.View
 
                 if(player.AvailableAmountForTrading<=70) 
                 {
-                    logger.Info("  " + candleCloseTime + " " + player.Name + player.Avatar + " Available amount "+ player.AvailableAmountForTrading + " Not enough for trading");
+                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " Available amount "+ player.AvailableAmountForTrading + " Not enough for trading");
                     continue;
                 }
 
@@ -623,7 +621,7 @@ namespace Trader.MVVM.View
             }
             if (isdbUpdateRequired) await db.SaveChangesAsync();
 
-            logger.Info("Buying scan Completed for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
+            logger.Info("Buying scan Completed at " + ProcessingTime);
             logger.Info("");
         }
 
@@ -638,8 +636,7 @@ namespace Trader.MVVM.View
                 return;
             }
 
-
-            logger.Info("Selling scan Started for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
+            logger.Info("Selling scan Started at " + ProcessingTime);
 
             DB TradeDB = new DB();
             var players = await TradeDB.Player.OrderBy(x => x.Id).ToListAsync();
@@ -650,7 +647,7 @@ namespace Trader.MVVM.View
 
                 if (!player.IsTrading)
                 {
-                    logger.Info("  " + candleCloseTime + " " + player.Name + player.Avatar + " is waiting to buy. Nothing to sell");
+                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " is waiting to buy. Nothing to sell");
                     continue;
                 }
 
@@ -658,7 +655,7 @@ namespace Trader.MVVM.View
                 var sig = CurrentSignals.Where(x => x.Symbol == pair).FirstOrDefault();
                 if (sig == null)
                 {
-                    logger.Info("  " + candleCloseTime + " " + player.Name + player.Avatar + " " + pair.Replace("USDT", "").PadRight(7, ' ') + " No signals returned. Continuing ");
+                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " " + pair.Replace("USDT", "").PadRight(7, ' ') + " No signals returned. Continuing ");
                     continue;
                 }
 
@@ -678,7 +675,7 @@ namespace Trader.MVVM.View
                         #region log not selling reason
 
                         logger.Info("  " +
-                           candleCloseTime +
+                           ProcessingTime +
                            " " + player.Name + player.Avatar +
                            " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
                            " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(10, ' ') +
@@ -708,7 +705,7 @@ namespace Trader.MVVM.View
                     else
                     {
                         logger.Info("  " +
-                        candleCloseTime +
+                        ProcessingTime +
                         " " + player.Name + player.Avatar +
                         " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
                         " not available in Binance. its unusal, so wont execute sell order. Check it out");
@@ -766,7 +763,7 @@ namespace Trader.MVVM.View
                         #region log profit sell
 
                         logger.Info("  " +
-                           candleCloseTime +
+                           ProcessingTime +
                             " " + player.Name + player.Avatar +
                             " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
                             " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -785,7 +782,7 @@ namespace Trader.MVVM.View
                         #region log loss sell
 
                         logger.Info("  " +
-                        candleCloseTime +
+                        ProcessingTime +
                         " " + player.Name + player.Avatar +
                         " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
                         " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -802,8 +799,6 @@ namespace Trader.MVVM.View
                     }
 
                    
-
-
                     PlayerTrades PlayerTrades = iMapr.Map<Player, PlayerTrades>(player);
                     PlayerTrades.Id = 0;
                     await TradeDB.PlayerTrades.AddAsync(PlayerTrades);
@@ -839,7 +834,7 @@ namespace Trader.MVVM.View
                     #region log dont sell reason
 
                     logger.Info("  " +
-                        candleCloseTime +
+                        ProcessingTime +
                         " " + player.Name + player.Avatar +
                         " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
                         " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
@@ -874,7 +869,7 @@ namespace Trader.MVVM.View
 
             await TradeDB.SaveChangesAsync();
 
-            logger.Info("Selling scan Completed for candle: Open time " + candleOpenTime + " Close Time " + candleCloseTime);
+            logger.Info("Selling scan Completed at " + ProcessingTime);
             logger.Info("");
         }
 
@@ -1712,8 +1707,7 @@ namespace Trader.MVVM.View
             try
             {
                 await GetSignals_Prod();
-                candleOpenTime = CurrentSignals.FirstOrDefault().CandleOpenTime.ToString("dd-MMM HH:mm");
-                candleCloseTime = CurrentSignals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm");
+                ProcessingTime = CurrentSignals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm");
             }
             catch (Exception ex)
             {
