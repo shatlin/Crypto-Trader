@@ -31,7 +31,7 @@ namespace Trader.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance-QA;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }

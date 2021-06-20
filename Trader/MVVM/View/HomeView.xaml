@@ -46,7 +46,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Button x:Name="btnUpdateBalance" Content="Refresh Balance" VerticalAlignment="Top"  FontFamily="/Fonts/#Poppins"  
+        <!--<Button x:Name="btnUpdateBalance" Content="Refresh Balance" VerticalAlignment="Top"  FontFamily="/Fonts/#Poppins"  
            Grid.Row="2" Grid.Column="0"  Click="btnUpdateBalance_Click" HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
 
         <Button x:Name="btnClearRobot" Click="btnClearPlayer_Click"  Content="Clear Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="1"
@@ -54,7 +54,7 @@
         
 
         <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
-           HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
+           HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />-->
         
         
         <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"
