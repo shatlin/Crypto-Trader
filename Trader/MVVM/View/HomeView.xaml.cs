@@ -665,7 +665,7 @@ namespace Trader.MVVM.View
             }
             if (isdbUpdateRequired) await db.SaveChangesAsync();
 
-            logger.Info("Buying scan Completed at " + ProcessingTime + ". Next scan at " + ProcessingTime.AddMinutes(configr.IntervalMinutes).ToString("dd-MMM HH:mm"));
+            logger.Info("Buying scan Completed at " + ProcessingTime );
             logger.Info("");
         }
 
@@ -701,13 +701,13 @@ namespace Trader.MVVM.View
             if(currentRoundProfitPer >= lastRoundsProfitPerc) // You re continuing to make profit, so dont sell now
             {
 
-                logger.Info("This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting bigger than "+ lastRoundsProfitPerc +" So dont sell now");
-                lastRoundsProfitPerc=0;
+                logger.Info("  This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting bigger than last round's "+ lastRoundsProfitPerc.Deci().Rnd(2) + " So dont sell now");
+                lastRoundsProfitPerc= currentRoundProfitPer;
                 return;
             }
             else
             {
-                logger.Info("This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting smaller than " + lastRoundsProfitPerc + " So aim to sell now");
+                logger.Info("  This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting smaller than last round's " + lastRoundsProfitPerc.Deci().Rnd(2) + " So aim to sell now");
                 lastRoundsProfitPerc = 0;
             }
 
@@ -959,7 +959,7 @@ namespace Trader.MVVM.View
 
             await TradeDB.SaveChangesAsync();
 
-            logger.Info("Selling scan Completed at " + ProcessingTimeString);
+            logger.Info("Selling scan Completed at " + ProcessingTimeString + ". Next scan at " + ProcessingTime.AddMinutes(configr.IntervalMinutes).ToString("dd-MMM HH:mm"));
             logger.Info("");
         }
 
@@ -1000,27 +1000,6 @@ namespace Trader.MVVM.View
 
             #endregion  GetSignals
 
-            #region Sells
-
-            if (activePlayers != null && activePlayers.Count() > 0)
-            {
-                try // sell first, so that you can use the available spots to buy next. Otherwise you will wait longer to buy.
-                {
-                    await Sell();
-                }
-                catch (Exception ex)
-                {
-                    logger.Error("Exception in sell  " + ex.Message);
-                }
-            }
-            else
-            {
-                logger.Info("None of the players are active. Nothing bought so nothing to sell");
-                logger.Info(" ");
-            }
-
-            #endregion  Sells
-
             #region Buys
 
             try
@@ -1029,9 +1008,9 @@ namespace Trader.MVVM.View
                 {
                     await Buy();
                 }
-                else  
+                else
                 {
-                    logger.Info("Last 3 sells were at loss. Lets wait for " + 
+                    logger.Info("Last 3 sells were at loss. Lets wait for " +
                         (configr.MaxPauses - configr.TotalCurrentPauses) * 15 + " more minutes before attempting to buy again");
 
                     configr.TotalCurrentPauses += 1;
@@ -1052,6 +1031,29 @@ namespace Trader.MVVM.View
             }
 
             #endregion  Buys
+
+            #region Sells
+
+            if (activePlayers != null && activePlayers.Count() > 0)
+            {
+                try 
+                {
+                    await Sell();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Exception in sell  " + ex.Message);
+                }
+            }
+            else
+            {
+                logger.Info("None of the players are active. Nothing bought so nothing to sell");
+                logger.Info(" ");
+            }
+
+            #endregion  Sells
+
+          
 
             //   logger.Info("---------------Trading Completed for candle Time--------------" + latestCandleTime);
 
