@@ -52,21 +52,18 @@ namespace Trader.MVVM.View
         public DispatcherTimer CandleDataRetrieverTimer;
         public DispatcherTimer TraderTimer;
         public DispatcherTimer CandleDailyDataRetrieverTimer;
-        public string ProcessingTime { get; set; }
-        public bool isProd = false;
-
+        public DateTime ProcessingTime { get; set; }
+        public string ProcessingTimeString { get; set; }
+        public decimal? lastRoundsProfitPerc = 0;
         public int totalConsecutivelosses = 0;
-        int totalcurrentPauses = 0;
-        int maxTotalPauses=3;
 
         BinanceClient client;
         ILog logger;
-        int intervalMins = 7;
-        
+
         IMapper iMapr;
         List<string> boughtCoins = new List<string>();
         List<Signal> CurrentSignals = new List<Signal>();
-
+        public Config configr = new Config();
         //  bool isfifteenminTrade = false;
 
         public HomeView()
@@ -77,14 +74,18 @@ namespace Trader.MVVM.View
 
         private void Startup()
         {
+            DB db = new DB();
+
+            configr = db.Config.First();
 
             TraderTimer = new DispatcherTimer();
             TraderTimer.Tick += new EventHandler(TraderTimer_Tick);
-            TraderTimer.Interval = new TimeSpan(0, intervalMins, 0);
+            TraderTimer.Interval = new TimeSpan(0, configr.IntervalMinutes, 0);
             TraderTimer.Start();
+            lblBotName.Text = configr.Botname;
             logger = LogManager.GetLogger(typeof(MainWindow));
 
-            DB db = new DB();
+
             var api = db.API.FirstOrDefault();
             client = new BinanceClient(new ClientConfiguration()
             {
@@ -198,11 +199,11 @@ namespace Trader.MVVM.View
                                 {
                                     if (trade.IsBuyer)
                                     {
-                                        spentprice += (trade.Price * trade.Quantity) + (trade.Price * trade.Quantity) * 0.075M / 100;
+                                        spentprice += (trade.Price * trade.Quantity) + (trade.Price * trade.Quantity) * configr.CommisionAmount / 100;
                                     }
                                     else
                                     {
-                                        spentprice -= (trade.Price * trade.Quantity) + (trade.Price * trade.Quantity) * 0.075M / 100;
+                                        spentprice -= (trade.Price * trade.Quantity) + (trade.Price * trade.Quantity) * configr.CommisionAmount / 100;
                                     }
                                 }
                             }
@@ -279,7 +280,7 @@ namespace Trader.MVVM.View
 
         #region Prod
 
-        private async Task<List<Candle>> GetCandle_Prod()
+        private async Task<List<Candle>> GetCandle()
         {
             logger.Info("Getting Candle Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
             DB candledb = new DB();
@@ -353,26 +354,26 @@ namespace Trader.MVVM.View
                     else candledb.Candle.Update(isCandleExisting);
                 }
 
-              
-                
+
+
             }
             catch (Exception ex)
             {
                 logger.Info("Exception in Getting Candle  " + ex.Message);
                 throw;
             }
-           
+
             await candledb.SaveChangesAsync();
             logger.Info("Getting Candle Completed at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
             logger.Info("");
             return candles;
         }
 
-        private async Task<List<Signal>> GetSignals_Prod()
+        private async Task<List<Signal>> GetSignals()
         {
             DB TradeDB = new DB();
             CurrentSignals = new List<Signal>();
-            List<Candle> candles = await GetCandle_Prod();
+            List<Candle> candles = await GetCandle();
 
             foreach (var coin in MyCoins)
             {
@@ -403,20 +404,20 @@ namespace Trader.MVVM.View
                 CurrentSignals.Add(sig);
             }
 
-            CurrentSignals = CurrentSignals.OrderBy(x => x.PrDiffCurrAndLowPerc).ToList();
+            CurrentSignals = CurrentSignals.OrderByDescending(x => x.PrDiffCurrAndHighPerc).ToList();
             return CurrentSignals;
         }
 
-        private async Task Buy_Prod()
+        private async Task Buy()
         {
-
+            //Optimzation: Use only signals whose pricediff> the obots buy conditions. Filtter and then use the filtered signals
             if (CurrentSignals == null || CurrentSignals.Count() == 0)
             {
                 logger.Info("No signals found. returning from buying");
                 return;
             }
 
-            logger.Info("Buying scan Started at " + ProcessingTime);
+            logger.Info("Buying scan Started at " + ProcessingTimeString);
 
             #region definitions
 
@@ -451,7 +452,7 @@ namespace Trader.MVVM.View
 
             #region redistribute balances to bots waiting to buy
 
-            if (isProd)
+            if (configr.IsProd)
             {
 
                 AccountInformationResponse accinfo = await client.GetAccountInformation();
@@ -508,7 +509,7 @@ namespace Trader.MVVM.View
 
                 if (player.IsTrading)
                 {
-                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " currently occupied");
+                    logger.Info("  " + ProcessingTimeString + " " + player.Name + player.Avatar + " currently occupied");
 
                     var playersSignal = CurrentSignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
 
@@ -527,7 +528,7 @@ namespace Trader.MVVM.View
 
                 if (player.AvailableAmountForTrading <= 70)
                 {
-                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " Available amount " + player.AvailableAmountForTrading + " Not enough for trading");
+                    logger.Info("  " + ProcessingTimeString + " " + player.Name + player.Avatar + " Available amount " + player.AvailableAmountForTrading + " Not enough for trading");
                     continue;
                 }
 
@@ -544,11 +545,11 @@ namespace Trader.MVVM.View
 
                     if (sig.IsPicked)
                     {
-                        logger.Info("  " +
-                        sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
-                        " " + player.Name + player.Avatar +
-                        " " + sig.Symbol.Replace("USDT", "") +
-                        " is picked by another bot. look for another coin ");
+                        //logger.Info("  " +
+                        //sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
+                        //" " + player.Name + player.Avatar +
+                        //" " + sig.Symbol.Replace("USDT", "") +
+                        //" is picked by another bot. look for another coin ");
                         continue;
                     }
 
@@ -563,9 +564,9 @@ namespace Trader.MVVM.View
                         continue;
                     }
 
-                 
 
-                  
+
+
 
                     #endregion  conditions to no go further with buy
 
@@ -588,10 +589,10 @@ namespace Trader.MVVM.View
                         var PriceResponse = await client.GetPrice(sig.Symbol);
                         var latestPrice = PriceResponse.Price;
 
-                        var mybuyPrice = latestPrice - (latestPrice * 0.07M / 100); // setting the buy price to a tiny amount lesser than the current price.
+                        var mybuyPrice = latestPrice - (latestPrice * configr.BufferPriceForBuyAndSell / 100); // setting the buy price to a tiny amount lesser than the current price.
                         player.Pair = sig.Symbol;
 
-                        if (isProd)
+                        if (configr.IsProd)
                         {
                             var createOrder = await client.CreateTestOrder(new CreateOrderRequest()
                             {
@@ -609,7 +610,7 @@ namespace Trader.MVVM.View
                         player.DayLow = sig.DayLowPr;
                         player.BuyPricePerCoin = mybuyPrice;
                         player.QuantityBought = player.AvailableAmountForTrading / mybuyPrice;
-                        player.BuyingCommision = player.AvailableAmountForTrading * 0.075M / 100;
+                        player.BuyingCommision = player.AvailableAmountForTrading * configr.CommisionAmount / 100;
                         player.TotalBuyCost = mybuyPrice * player.QuantityBought + player.BuyingCommision;
                         player.CurrentPricePerCoin = mybuyPrice;
                         player.TotalCurrentValue = player.AvailableAmountForTrading;
@@ -664,23 +665,51 @@ namespace Trader.MVVM.View
             }
             if (isdbUpdateRequired) await db.SaveChangesAsync();
 
-            logger.Info("Buying scan Completed at " + ProcessingTime + ". Next scan at " + DateTime.Now.AddMinutes(intervalMins).ToString("dd-MMM HH:mm"));
+            logger.Info("Buying scan Completed at " + ProcessingTime + ". Next scan at " + ProcessingTime.AddMinutes(configr.IntervalMinutes).ToString("dd-MMM HH:mm"));
             logger.Info("");
         }
 
-        private async Task Sell_Prod()
+        private async Task Sell()
         {
+            decimal? currentRoundProfitPer=0;
 
-            if (CurrentSignals == null || CurrentSignals.Count() == 0)
-            {
-                logger.Info("No signals found. returning from selling");
-                return;
-            }
 
-            logger.Info("Selling scan Started at " + ProcessingTime);
+            logger.Info("Selling scan Started at " + ProcessingTimeString);
 
             DB TradeDB = new DB();
             var players = await TradeDB.Player.OrderBy(x => x.Id).ToListAsync();
+
+            foreach(var player in players)
+            {
+                var signal=CurrentSignals.Where(x=>x.Symbol==player.Pair).FirstOrDefault();
+
+                var currentprice=signal.CurrPr;
+
+
+                var sellPrice = currentprice + (currentprice * configr.BufferPriceForBuyAndSell / 100); // setting the sell price to a tiny amount more than the current price.
+
+                var SoldCommision = sellPrice * player.QuantityBought * configr.CommisionAmount / 100;
+
+                var TotalSoldAmount = sellPrice * player.QuantityBought - player.SoldCommision;
+
+                var prDiffPerc = TotalSoldAmount.GetDiffPerc(player.TotalBuyCost);
+
+                currentRoundProfitPer+= prDiffPerc;
+
+            }
+
+            if(currentRoundProfitPer >= lastRoundsProfitPerc) // You re continuing to make profit, so dont sell now
+            {
+
+                logger.Info("This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting bigger than "+ lastRoundsProfitPerc +" So dont sell now");
+                lastRoundsProfitPerc=0;
+                return;
+            }
+            else
+            {
+                logger.Info("This round's profit percentage " + currentRoundProfitPer.Deci().Rnd(2) + " is getting smaller than " + lastRoundsProfitPerc + " So aim to sell now");
+                lastRoundsProfitPerc = 0;
+            }
 
             foreach (var player in players)
             {
@@ -688,26 +717,29 @@ namespace Trader.MVVM.View
 
                 if (!player.IsTrading)
                 {
-                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " is waiting to buy. Nothing to sell");
+                    logger.Info("  " + ProcessingTimeString + " " + player.Name + player.Avatar + " is waiting to buy. Nothing to sell");
                     continue;
                 }
 
                 var pair = player.Pair;
-                var sig = CurrentSignals.Where(x => x.Symbol == pair).FirstOrDefault();
-                if (sig == null)
-                {
-                    logger.Info("  " + ProcessingTime + " " + player.Name + player.Avatar + " " + pair.Replace("USDT", "").PadRight(7, ' ') + " No signals returned. Continuing ");
-                    continue;
-                }
 
                 #endregion conditions to go no further with sell
 
                 //update to set all these values in PlayerTrades
 
-                player.SoldCommision = player.CurrentPricePerCoin * player.QuantityBought * 0.075M / 100;
-                player.TotalSoldAmount = player.TotalCurrentValue - player.SoldCommision;
+                var PriceResponse = await client.GetPrice(pair);
+                var PriceChangeResponse = await client.GetDailyTicker(pair);
+
+                var latestPrice = PriceResponse.Price;
+
+                var mysellPrice = latestPrice + (latestPrice * configr.BufferPriceForBuyAndSell / 100); // setting the sell price to a tiny amount more than the current price.
+
+                player.SoldCommision = mysellPrice * player.QuantityBought * configr.CommisionAmount / 100;
+                player.TotalSoldAmount = mysellPrice * player.QuantityBought - player.SoldCommision;
 
                 var prDiffPerc = player.TotalSoldAmount.GetDiffPerc(player.TotalBuyCost);
+
+                lastRoundsProfitPerc+= prDiffPerc;
 
                 if ((prDiffPerc > player.SellAbovePerc) || (prDiffPerc < player.SellBelowPerc))
                 {
@@ -716,13 +748,13 @@ namespace Trader.MVVM.View
                         #region log not selling reason
 
                         logger.Info("  " +
-                           ProcessingTime +
+                           ProcessingTimeString +
                            " " + player.Name + player.Avatar +
-                           " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
-                           " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(10, ' ') +
-                           " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(10, ' ') +
+                           " " + pair.Replace("USDT", "").PadRight(7, ' ') +
+                           " DHi   " + PriceChangeResponse.HighPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " DLo   " + PriceChangeResponse.LowPrice.Rnd().ToString().PadRight(10, ' ') +
                            " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
-                           " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(10, ' ') +
+                           " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(0) +
@@ -736,7 +768,7 @@ namespace Trader.MVVM.View
 
                     decimal availableQty = 0;
 
-                    if (isProd)
+                    if (configr.IsProd)
                     {
                         var coin = pair.Replace("USDT", "");
 
@@ -751,11 +783,10 @@ namespace Trader.MVVM.View
                         else
                         {
                             logger.Info("  " +
-                            ProcessingTime +
+                            ProcessingTimeString +
                             " " + player.Name + player.Avatar +
-                            " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
+                                 " " + pair.Replace("USDT", "").PadRight(7, ' ') +
                             " not available in Binance. its unusal, so wont execute sell order. Check it out");
-
                             continue;
                         }
                     }
@@ -777,16 +808,12 @@ namespace Trader.MVVM.View
                     //    continue;
                     //}
 
-                    var PriceResponse = await client.GetPrice(sig.Symbol);
-                    var latestPrice = PriceResponse.Price;
-
-                    var mysellPrice = latestPrice + (latestPrice * 0.07M / 100); // setting the sell price to a tiny amount more than the current price.
 
                     player.QuantityBought = availableQty;
-                    player.SoldCommision = mysellPrice * availableQty * 0.075M / 100;
+                    player.SoldCommision = mysellPrice * availableQty * configr.CommisionAmount / 100;
                     player.TotalSoldAmount = mysellPrice * availableQty - player.SoldCommision;
 
-                    if (isProd)
+                    if (configr.IsProd)
                     {
                         var createOrder = await client.CreateTestOrder(new CreateOrderRequest()
                         {
@@ -799,64 +826,64 @@ namespace Trader.MVVM.View
                     }
 
                     player.SaleProfitOrLoss = (player.TotalSoldAmount - player.TotalBuyCost).Deci();
-                    player.DayHigh = sig.DayHighPr;
-                    player.DayLow = sig.DayLowPr;
-                    player.CurrentPricePerCoin = sig.CurrPr;
+                    player.DayHigh = PriceChangeResponse.HighPrice;
+                    player.DayLow = PriceChangeResponse.LowPrice;
+                    player.CurrentPricePerCoin = latestPrice;
                     player.TotalCurrentValue = player.CurrentPricePerCoin * player.QuantityBought;
-                    player.QuantitySold = Convert.ToDecimal(player.QuantityBought);
+                    player.QuantitySold = availableQty;
                     player.AvailableAmountForTrading = player.TotalSoldAmount;
                     player.SellTime = DateTime.Now;
                     player.UpdatedTime = DateTime.Now;
                     player.SoldPricePricePerCoin = mysellPrice;
-                    player.CandleOpenTimeAtSell = sig.CandleOpenTime;
+                    player.CandleOpenTimeAtSell = DateTime.Now;
                     player.BuyOrSell = "Sell";
                     player.TotalCurrentProfit = player.AvailableAmountForTrading - player.OriginalAllocatedValue;
-                    player.SellCandleId = sig.CandleId;
+                    player.SellCandleId = 0;
 
                     if (prDiffPerc > player.SellAbovePerc)
                     {
                         #region log profit sell
 
                         logger.Info("  " +
-                           ProcessingTime +
+                           ProcessingTimeString +
                             " " + player.Name + player.Avatar +
-                            " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
-                            " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
-                            " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
-                             " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
-                            " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
-                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(12, ' ') +
-                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(12, ' ') +
+                              " " + pair.Replace("USDT", "").PadRight(7, ' ') +
+                           " DHi   " + PriceChangeResponse.HighPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " DLo   " + PriceChangeResponse.LowPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
+                           " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
+                           " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
                             " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                             " > +" + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                             " Profit Sell");
                         #endregion log profit sell
                         player.LossOrProfit = "Profit Sell";
-                        totalConsecutivelosses -= 1;
+                        configr.TotalConsecutiveLosses -= 1;
                     }
                     else if (prDiffPerc < player.SellBelowPerc)
                     {
                         #region log loss sell
 
                         logger.Info("  " +
-                        ProcessingTime +
+                        ProcessingTimeString +
                         " " + player.Name + player.Avatar +
-                        " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
-                        " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
-                        " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
-                         " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
-                        " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
-                        " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(12, ' ') +
-                        " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(12, ' ') +
+                         " " + pair.Replace("USDT", "").PadRight(7, ' ') +
+                           " DHi   " + PriceChangeResponse.HighPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " DLo   " + PriceChangeResponse.LowPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
+                           " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
+                           " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
                         " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                         " < " + player.SellBelowPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                         " Loss Sell");
 
                         #endregion log loss sell
                         player.LossOrProfit = "Loss";
-                        totalConsecutivelosses += 1;
+                        configr.TotalConsecutiveLosses += 1;
 
-                        logger.Info("  " + ProcessingTime + " TOtal Consecutive Loss" + totalConsecutivelosses);
+                        logger.Info("  " + ProcessingTimeString + " Total Consecutive Loss " + configr.TotalConsecutiveLosses);
                     }
 
 
@@ -894,15 +921,15 @@ namespace Trader.MVVM.View
                     #region log dont sell reason
 
                     logger.Info("  " +
-                        ProcessingTime +
+                        ProcessingTimeString +
                         " " + player.Name + player.Avatar +
-                        " " + sig.Symbol.Replace("USDT", "").PadRight(7, ' ') +
-                        " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
-                        " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
-                         " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
-                        " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
-                        " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(12, ' ') +
-                        " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(12, ' ') +
+                          " " + pair.Replace("USDT", "").PadRight(7, ' ') +
+                           " DHi   " + PriceChangeResponse.HighPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " DLo   " + PriceChangeResponse.LowPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyCnPr " + player.BuyPricePerCoin.Deci().Rnd().ToString().PadRight(10, ' ') +
+                           " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
+                           " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
+                           " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
                         " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                         " < " + player.SellAbovePerc.Deci().Rnd(1).ToString().PadRight(3, ' ') +
                         " and > " + player.SellBelowPerc.Deci().Rnd(1) + " Dont Sell");
@@ -932,12 +959,11 @@ namespace Trader.MVVM.View
 
             await TradeDB.SaveChangesAsync();
 
-            logger.Info("Selling scan Completed at " + ProcessingTime );
+            logger.Info("Selling scan Completed at " + ProcessingTimeString);
             logger.Info("");
         }
 
         #endregion Prod
-
 
         private async Task Trade()
         {
@@ -948,34 +974,49 @@ namespace Trader.MVVM.View
 
             DB db = new DB();
             var allplayers = await db.Player.ToListAsync();
+            configr=await db.Config.FirstOrDefaultAsync();
             List<Signal> signals = new List<Signal>();
             MyCoins = await db.MyCoins.AsNoTracking().ToListAsync();
 
+            var activePlayers = allplayers.Where(x => x.IsTrading == true);
+
+            ProcessingTime = DateTime.Now;
+            ProcessingTimeString= ProcessingTime.ToString("dd-MMM HH:mm:ss");
 
             #region GetSignals
 
-            try
+          //  if (configr.TotalConsecutiveLosses < 3)
             {
-                await GetSignals_Prod();
-                ProcessingTime = CurrentSignals.FirstOrDefault().CandleCloseTime.ToString("dd-MMM HH:mm:ss");
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Exception in signal Generator.Returning.. " + ex.Message);
-                return;
+                try
+                {
+                    await GetSignals();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Exception in signal Generator.Returning.. " + ex.Message);
+                    return;
+                }
             }
 
             #endregion  GetSignals
 
             #region Sells
 
-            try // sell firsth, so that you can use the available spots to buy next. Otherwise you will wait longer to buy.
+            if (activePlayers != null && activePlayers.Count() > 0)
             {
-                await Sell_Prod();
+                try // sell first, so that you can use the available spots to buy next. Otherwise you will wait longer to buy.
+                {
+                    await Sell();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Exception in sell  " + ex.Message);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                logger.Error("Exception in sell  " + ex.Message);
+                logger.Info("None of the players are active. Nothing bought so nothing to sell");
+                logger.Info(" ");
             }
 
             #endregion  Sells
@@ -984,23 +1025,25 @@ namespace Trader.MVVM.View
 
             try
             {
-                if (totalConsecutivelosses < 3)
+                if (configr.TotalConsecutiveLosses < 3)
                 {
-                    await Buy_Prod();
+                    await Buy();
                 }
-                else  // 3 last trades lost money, so its a downward trend. Wait for maxpauses reps (15 mins) before buying. Keep tracking to sell.
+                else  
                 {
-                    logger.Info("Last 3 sells were at loss. Lets wait for " + (maxTotalPauses - totalcurrentPauses) * 15 + " more minutes before attempting to buy again");
+                    logger.Info("Last 3 sells were at loss. Lets wait for " + 
+                        (configr.MaxPauses - configr.TotalCurrentPauses) * 15 + " more minutes before attempting to buy again");
 
-                    totalcurrentPauses += 1;
+                    configr.TotalCurrentPauses += 1;
 
-                    if (totalcurrentPauses >= maxTotalPauses) 
+                    if (configr.TotalCurrentPauses >= configr.MaxPauses)
                     {
                         logger.Info("Wait times over. Resetting losses and starting to trade again");
-                        totalcurrentPauses = 0;
-                        totalConsecutivelosses = 0;
-                        await Buy_Prod();
+                        configr.TotalCurrentPauses = 0;
+                        configr.TotalConsecutiveLosses = 0;
                     }
+                    db.Update(configr);
+                    await db.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
@@ -1009,9 +1052,6 @@ namespace Trader.MVVM.View
             }
 
             #endregion  Buys
-
-         
-
 
             //   logger.Info("---------------Trading Completed for candle Time--------------" + latestCandleTime);
 

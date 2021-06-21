@@ -26,12 +26,13 @@ namespace Trader.Models
         public DbSet<MyCoins> MyCoins { get; set; }
         public DbSet<Player> Player { get; set; }
         public DbSet<PlayerTrades> PlayerTrades { get; set; }
+        public DbSet<Config> Config { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance-QA;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance3;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -41,6 +42,7 @@ namespace Trader.Models
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new APIConfiguration());
             modelBuilder.ApplyConfiguration(new MyTradeConfiguration());
+            modelBuilder.ApplyConfiguration(new ConfigConfiguration()).SeedConfig();
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());

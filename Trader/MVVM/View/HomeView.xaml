@@ -28,8 +28,8 @@
         <TextBlock x:Name="lblDifference" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="2" Text="Difference : "  />
         <TextBlock x:Name="lblDifferencePercentage" Foreground="#2ed191"  FontSize="30" Grid.Row="0" Grid.Column="3" Text="Difference % : "  />
 
-       
-        
+        <TextBlock x:Name="lblBotName" Foreground="#2ed191"  FontSize="30" Grid.Row="0" Grid.Column="5" Text=" "  />
+
         <DataGrid x:Name="BalanceDG" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
                   Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
             <DataGrid.Columns>
