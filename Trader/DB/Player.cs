@@ -55,6 +55,8 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? OriginalAllocatedValue { get; set; }
 
+        public decimal? LastRoundProfitPerc { get; set; }
+
         public bool IsTrading { get; set; }
 
         public DateTime? BuyTime { get; set; }
@@ -106,6 +108,7 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.TotalSoldAmount).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.TotalExpectedProfit).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SaleProfitOrLoss).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.LastRoundProfitPerc).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.LossOrProfit).IsRequired(false);
         }
 

@@ -40,6 +40,8 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? BuyingCommision { get; set; }
 
+        public decimal? LastRoundProfitPerc { get; set; }
+
         public decimal SoldPricePricePerCoin { get; set; }
         public decimal QuantitySold { get; set; }
         public decimal? SoldCommision { get; set; }
@@ -106,6 +108,7 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.TotalExpectedProfit).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SellAbovePerc).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.SaleProfitOrLoss).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.LastRoundProfitPerc).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.LossOrProfit).IsRequired(false);
 
         }
