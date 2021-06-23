@@ -81,7 +81,7 @@ namespace Trader.MVVM.View
             TraderTimer = new DispatcherTimer();
             TraderTimer.Tick += new EventHandler(TraderTimer_Tick);
             TraderTimer.Interval = new TimeSpan(0, configr.IntervalMinutes, 0);
-            TraderTimer.Start();
+
             lblBotName.Text = configr.Botname;
             logger = LogManager.GetLogger(typeof(MainWindow));
 
@@ -94,7 +94,7 @@ namespace Trader.MVVM.View
                 Logger = logger,
             });
 
-            logger.Info("Application Started and Timer Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+           
             try
             {
                 SetGrid();
@@ -111,6 +111,18 @@ namespace Trader.MVVM.View
             });
 
             iMapr = config.CreateMapper();
+
+            if (configr.Botname == "SHATLIN")
+            {
+                Thread.Sleep(120000);
+            }
+            else if (configr.Botname == "DAMIEN")
+            {
+                Thread.Sleep(240000);
+            }
+
+            TraderTimer.Start();
+            logger.Info("Application Started and Timer Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
 
         }
 
@@ -463,7 +475,7 @@ namespace Trader.MVVM.View
 
         private async Task Buy()
         {
-            //Optimzation: Use only signals whose pricediff> the obots buy conditions. Filtter and then use the filtered signals
+
             if (CurrentSignals == null || CurrentSignals.Count() == 0)
             {
                 logger.Info("No signals found. returning from buying");
@@ -481,27 +493,6 @@ namespace Trader.MVVM.View
 
             #endregion definitions
 
-            #region prod buying logic
-
-            /*
-             *Step 1: Get All balances and apart from USDT, ensure they correspond to your player table.
-             *Step 2: coins other than USDT are your "Actively Trading Coins"
-             *Step 3: Once the matching is done,ignore anything in binance ( Could be from staking)
-             *Step 4: Divide USDT to available bots, but leave 5% in account to cater for inconsistencies, this is what is available for them to buy. Update all Player fields.
-             *
-             *Remember: Get all signals, but just before issuing a buy order, get current price and do "the" checks.
-             *Remember:Always issue limit order, so that you can record the exact price for which you bought for 
-                In Prod, I would just need the latest candle list and no references.
-
-                       //buying criteria
-                    //1. signals are ordered by the coins whose current price are at their lowest at the moment
-                    //2. See if this price is the lowest in the last 24 hours
-                    //3. See if the price difference is lower than what the player is expecting to buy at. If yes, buy.
-                    //Later see if you are on a downtrend and keep waiting till it reaches its low and then buy
-
-             */
-
-            #endregion
 
             #region redistribute balances to bots waiting to buy
 
@@ -606,7 +597,7 @@ namespace Trader.MVVM.View
                         continue;
                     }
 
-                    if (boughtCoins.Contains(sig.Symbol))
+                    if (boughtCoins.Contains(sig.Symbol)) 
                     {
                         logger.Info("  " +
                              sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
@@ -614,16 +605,39 @@ namespace Trader.MVVM.View
                             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " coin already bought. Going to next signal ");
                         sig.IsIgnored = true;
+
                         continue;
                     }
 
+                    #region prices are going down. Dont buy till you see signs of prices coming up
 
+                    var lastfewsignals = await db.Candle.OrderByDescending(x => x.Id).Where(x => x.Symbol == sig.Symbol).Skip(1).Take(3).ToListAsync();
+                    var minoflastfewsignals = lastfewsignals.Min(x => x.CurrentPrice);
 
+                    if (sig.CurrPr < minoflastfewsignals)
+                    {
+                        logger.Info("  " +
+                             sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
+                           " " + player.Name + player.Avatar +
+                          " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+                           " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
+                           " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
+                           " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
+                           " < Min of Last 3 rounds " + minoflastfewsignals.Rnd(5).ToString().PadRight(12, ' ') +
+                           " Prices keep going down. Dont buy now");
+
+                        sig.IsIgnored = true;
+                        continue;
+                    }
+
+                    #endregion prices are going down. Dont buy till you see signs of prices coming up
 
 
                     #endregion  conditions to no go further with buy
 
-                    if (sig.IsCloseToDayLow && (sig.PrDiffCurrAndHighPerc > player.BuyBelowPerc))
+                    //  if (sig.IsCloseToDayLow && (sig.PrDiffCurrAndHighPerc > player.BuyBelowPerc))
+
+                    if (sig.PrDiffCurrAndHighPerc > player.BuyBelowPerc)
                     {
                         #region log the buy
 
@@ -707,8 +721,8 @@ namespace Trader.MVVM.View
                             " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
                             " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
                             " PrDif Curr & High -" + sig.PrDiffCurrAndHighPerc.Rnd().ToString().PadRight(12, ' ') +
-                            " > -" + player.BuyBelowPerc.Deci().Rnd(0) +
-                            " Or not close to day low, Not Buying");
+                            " > -" + player.BuyBelowPerc.Deci().Rnd(0)+
+                             " Dont buy now" );
 
                         #endregion
 
@@ -730,7 +744,7 @@ namespace Trader.MVVM.View
             DB TradeDB = new DB();
             var players = await TradeDB.Player.OrderBy(x => x.Id).ToListAsync();
 
-         
+
 
             foreach (var player in players)
             {
@@ -761,17 +775,15 @@ namespace Trader.MVVM.View
 
                 var prDiffPerc = player.TotalSoldAmount.GetDiffPerc(player.TotalBuyCost);
 
-
                 if (player.LastRoundProfitPerc != null && prDiffPerc > player.LastRoundProfitPerc)
                 {
-
                     logger.Info("  " +
                           ProcessingTimeString +
                           " " + player.Name + player.Avatar +
                           " " + pair.Replace("USDT", "").PadRight(7, ' ') +
-                          " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(0) +
-                          " > last round's price difference" + player.LastRoundProfitPerc +
-                          "  Price increasing. Dont sell now");
+                          " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(5) +
+                          " > last round's price difference " + player.LastRoundProfitPerc.Deci().Rnd(5) +
+                          "  .Price increasing. Dont sell now");
 
                     player.LastRoundProfitPerc = prDiffPerc;
                     TradeDB.Player.Update(player);
@@ -780,7 +792,6 @@ namespace Trader.MVVM.View
 
                 if ((prDiffPerc > player.SellAbovePerc) || (prDiffPerc < player.SellBelowPerc))
                 {
-
                     if (prDiffPerc < player.DontSellBelowPerc)
                     {
                         #region log not selling reason
@@ -795,7 +806,7 @@ namespace Trader.MVVM.View
                            " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
-                           " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(0) +
+                           " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(5) +
                            " > " + player.DontSellBelowPerc.Deci().Rnd(0) +
                            " Not selling");
 
@@ -880,7 +891,7 @@ namespace Trader.MVVM.View
                     player.BuyOrSell = "Sell";
                     player.TotalCurrentProfit = player.AvailableAmountForTrading - player.OriginalAllocatedValue;
                     player.SellCandleId = 0;
-                    player.LastRoundProfitPerc=0;
+                    player.LastRoundProfitPerc = 0;
 
                     if (prDiffPerc > player.SellAbovePerc)
                     {
@@ -896,12 +907,19 @@ namespace Trader.MVVM.View
                            " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
-                            " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
+                            " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(4).ToString().PadRight(5, ' ') +
                             " > +" + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                             " Profit Sell");
                         #endregion log profit sell
                         player.LossOrProfit = "Profit";
                         configr.TotalConsecutiveLosses -= 1;
+
+                        //resetting losses. If making profit multiple times,
+                        //this will go to such a negative number that TotalConsecutiveLosses will not become 3 easily
+                        if (configr.TotalConsecutiveLosses<0) 
+                        {
+                            configr.TotalConsecutiveLosses=0;
+                        }
                     }
                     else if (prDiffPerc < player.SellBelowPerc)
                     {
@@ -917,7 +935,7 @@ namespace Trader.MVVM.View
                            " CurPr " + latestPrice.Rnd().ToString().PadRight(10, ' ') +
                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
-                        " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
+                        " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(4).ToString().PadRight(5, ' ') +
                         " < " + player.SellBelowPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                         " Loss Sell");
 
