@@ -611,8 +611,14 @@ namespace Trader.MVVM.View
 
                     #region prices are going down. Dont buy till you see signs of prices coming up
 
+                    decimal minoflastfewsignals=0;
+
                     var lastfewsignals = await db.Candle.OrderByDescending(x => x.Id).Where(x => x.Symbol == sig.Symbol).Skip(1).Take(3).ToListAsync();
-                    var minoflastfewsignals = lastfewsignals.Min(x => x.CurrentPrice);
+                    if(lastfewsignals!=null && lastfewsignals.Count>0)
+                    {
+                        minoflastfewsignals = lastfewsignals.Min(x => x.CurrentPrice);
+                    }
+                    
 
                     if (sig.CurrPr < minoflastfewsignals)
                     {
@@ -781,9 +787,9 @@ namespace Trader.MVVM.View
                           ProcessingTimeString +
                           " " + player.Name + player.Avatar +
                           " " + pair.Replace("USDT", "").PadRight(7, ' ') +
-                          " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(5) +
-                          " > last round's price difference " + player.LastRoundProfitPerc.Deci().Rnd(5) +
-                          "  .Price increasing. Dont sell now");
+                          " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(6) +
+                          " > last round's price difference " + player.LastRoundProfitPerc.Deci().Rnd(6) +
+                          "  Price increasing. Dont sell now");
 
                     player.LastRoundProfitPerc = prDiffPerc;
                     TradeDB.Player.Update(player);
@@ -908,7 +914,7 @@ namespace Trader.MVVM.View
                            " BuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                            " SlPr  " + player.TotalSoldAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
                             " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(4).ToString().PadRight(5, ' ') +
-                            " > +" + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
+                            " > " + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
                             " Profit Sell");
                         #endregion log profit sell
                         player.LossOrProfit = "Profit";
@@ -1071,7 +1077,7 @@ namespace Trader.MVVM.View
                 }
                 else
                 {
-                    logger.Info("Last " + configr.TotalConsecutiveLosses + "sells were at loss. Lets wait for " +
+                    logger.Info("Last " + configr.TotalConsecutiveLosses + " sells were at loss. Lets wait for " +
                         (configr.MaxPauses - configr.TotalCurrentPauses) * 15 + " more minutes before attempting to buy again");
 
                     configr.TotalCurrentPauses += 1;
