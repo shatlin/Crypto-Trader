@@ -7,9 +7,9 @@
         xmlns:viewModel="clr-namespace:Trader.MVVM.ViewModel"
         xmlns:view="clr-namespace:Trader.MVVM.View"
         mc:Ignorable="d"
-        Height="1080" Width="1920"
-        Background="Transparent"
-        WindowStartupLocation="CenterScreen" WindowState="Maximized">
+        Height="1080" Width="1920" 
+        Background="Transparent" 
+        Title="Pro Trader"  WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.DataContext>
         <viewModel:MainViewModel />

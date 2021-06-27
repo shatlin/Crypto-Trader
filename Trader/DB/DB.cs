@@ -22,6 +22,7 @@ namespace Trader.Models
         public DbSet<APIDetails> API { get; set; }
         public DbSet<Balance> Balance { get; set; }
         public DbSet<Candle> Candle { get; set; }
+        public DbSet<CandleBackUp> CandleBackUp { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
         public DbSet<MyCoins> MyCoins { get; set; }
         public DbSet<Player> Player { get; set; }
@@ -32,7 +33,7 @@ namespace Trader.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=binance3;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=Shatlin;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -45,6 +46,7 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new ConfigConfiguration()).SeedConfig();
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
+            modelBuilder.ApplyConfiguration(new CandleBackUpConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
         }

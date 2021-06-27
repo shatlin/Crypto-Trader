@@ -80,12 +80,15 @@ namespace BinanceExchange.API.Models.Response
         public string LossOrProfit { get; set; }
 
         public decimal SaleProfitOrLoss { get; set; }
+
+        public string ProfitLossChanges { get; set; }
     }
 
     public partial class PlayerConfiguration : IEntityTypeConfiguration<Player>
     {
         public void Configure(EntityTypeBuilder<Player> builder)
         {
+            builder.Property(e => e.ProfitLossChanges).IsRequired(false);
             builder.Property(e => e.BuyOrSell).IsRequired(false);
             builder.Property(e => e.DayHigh).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.DayLow).IsRequired().HasColumnType("decimal(30, 12)");

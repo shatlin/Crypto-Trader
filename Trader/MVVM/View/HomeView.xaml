@@ -23,26 +23,53 @@
         </Grid.ColumnDefinitions>
 
 
-        <TextBlock x:Name="lblInvested" FontSize="30"  Foreground="#2ed191" Margin="20,0,0,0"  Grid.Row="0" Grid.Column="0" Text="Invested : " />
-        <TextBlock x:Name="lblCurrentValue" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="1" Text="Current Value : " />
-        <TextBlock x:Name="lblDifference" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="2" Text="Difference : "  />
-        <TextBlock x:Name="lblDifferencePercentage" Foreground="#2ed191"  FontSize="30" Grid.Row="0" Grid.Column="3" Text="Difference % : "  />
+        <TextBlock x:Name="lblInvested" FontSize="18"  Foreground="#2ed191" Margin="20,0,0,0"  Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="" />
+        <TextBlock x:Name="lblDifference" FontSize="18" Foreground="#2ed191"   Grid.Row="0" Grid.Column="2" Text=""  />
+        <TextBlock x:Name="lblDifferencePercentage" Foreground="#2ed191"  FontSize="18" Grid.Row="0" Grid.Column="3" Text=""  />
+        <!--<TextBlock x:Name="lblCurrentValue" FontSize="30" Foreground="#2ed191"   Grid.Row="0" Grid.Column="1" Text="Current Value : " />
+       -->
 
-        <TextBlock x:Name="lblBotName" Foreground="#2ed191"  FontSize="30" Grid.Row="0" Grid.Column="5" Text=" "  />
+        <TextBlock x:Name="lblBotName" Foreground="#2ed191"  FontSize="24" Grid.Row="0" Grid.Column="5" Text=" "  />
 
         <DataGrid x:Name="BalanceDG" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
                   Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Id" Width="60" Binding="{Binding Id}"  />
-                <DataGridTextColumn Header="Asset"  Width="130" Binding="{Binding Asset}"/>
-                <DataGridTextColumn Header="Available Coins" Width="180"  Binding="{Binding Free, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Bought Price" Width="180" Binding="{Binding TotBoughtPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Current Price" Width="180" Binding="{Binding TotCurrentPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Difference" Width="150" Binding="{Binding Difference, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Difference %" Width="150" Binding="{Binding DiffPerc, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Coin Buy Price (Approx)" Width="300" Binding="{Binding AvgBuyCoinPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Coin Current Price" Width="250" Binding="{Binding CurrCoinPrice, StringFormat=N6}"/>
-                <DataGridTextColumn Header="Locked" Binding="{Binding Locked, StringFormat=N0}"/>
+                <DataGridTextColumn Header="Name"  Width="70" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="Pair" Width="100"  Binding="{Binding Pair}"/>
+                <DataGridTextColumn Header="BuyTime" Width="130" Binding="{Binding BuyTime}"/>
+                <DataGridTextColumn Header="Qty" Width="100" Binding="{Binding QuantityBought, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Coin Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Coin Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Total Buy Cost" Width="130" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Total Curr Value" Width="150" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Last profit %" Width="120" Binding="{Binding LastRoundProfitPerc, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Curr Profit %" Width="120" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Sell bel %" Width="80" Binding="{Binding SellBelowPerc, StringFormat=N2}"/>
+                <DataGridTextColumn Header="Sell abv %" Width="80" Binding="{Binding SellAbovePerc, StringFormat=N2}"/>
+                <DataGridTextColumn Header="ProfitLossChanges"   Width="400" Binding="{Binding ProfitLossChanges}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style>
+                            <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTemplateColumn Header="Sell">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="SellThisBot" Height="40" Width="60">Sell</Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="View">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="ViewCoin" Height="40" Width="60">View</Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
             </DataGrid.Columns>
         </DataGrid>
 
@@ -53,11 +80,13 @@
            Grid.Row="2" Grid.Column="0"  Click="btnUpdateBalance_Click" HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
 
       
-        
-
-        <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
+            <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
            HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />-->
-        
+
+        <Button x:Name="btnSellAll" Click="btnSellAll_Click"  Content="Force Sell All" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
+           HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
+
+     
         
         <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"
            Grid.Row="2" Grid.Column="3" Click="btnTrade_Click"  Style="{StaticResource ButtonTheme}" />
