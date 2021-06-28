@@ -77,11 +77,11 @@
            HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
 
         <!--<Button x:Name="btnUpdateBalance" Content="Refresh Balance" VerticalAlignment="Top"  FontFamily="/Fonts/#Poppins"  
-           Grid.Row="2" Grid.Column="0"  Click="btnUpdateBalance_Click" HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
+           Grid.Row="2" Grid.Column="0"  Click="btnUpdateBalance_Click" HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />-->
 
       
-            <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
-           HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />-->
+            <Button x:Name="btnCollectData" Click="btnCollectData_Click"  Content="Collect Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="0"
+           HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
 
         <Button x:Name="btnSellAll" Click="btnSellAll_Click"  Content="Force Sell All" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="2"
            HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
