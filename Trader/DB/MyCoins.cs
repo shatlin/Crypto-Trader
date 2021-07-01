@@ -12,10 +12,8 @@ namespace Trader.Models
     {
         public int Id { get; set; }
         public string Coin { get; set; }
-        
+        public int TradePrecision { get; set; }
     }
-
-   
 
 
 }

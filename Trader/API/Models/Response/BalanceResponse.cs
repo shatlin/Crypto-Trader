@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using BinanceExchange.API.Models.Response.Interfaces;
 
 namespace BinanceExchange.API.Models.Response
@@ -10,7 +9,6 @@ namespace BinanceExchange.API.Models.Response
     [DataContract]
     public class BalanceResponse : IBalanceResponse
     {
-        [Key]
         [DataMember(Order = 1)]
         public string Asset { get; set; }
         

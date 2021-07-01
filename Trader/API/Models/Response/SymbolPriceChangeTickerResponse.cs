@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using BinanceExchange.API.Converter;
 using Newtonsoft.Json;
@@ -56,7 +55,6 @@ namespace BinanceExchange.API.Models.Response
         [JsonProperty(PropertyName = "firstId")]
         public long FirstTradeId { get; set; }
 
-        [Key]
         [DataMember(Order = 15)]
         [JsonProperty(PropertyName = "lastId")]
         public long LastId { get; set; }

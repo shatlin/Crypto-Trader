@@ -10,8 +10,8 @@
             <Setter.Value>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#2ed191" />
-                    <Setter Property="Foreground" Value="White" />
-                    <Setter Property="BorderBrush" Value="White"/>
+                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="BorderBrush" Value="Black"/>
                     <Setter Property="BorderThickness" Value="1 1 1 1"/>
                     <Setter Property="Height" Value="35" />
                     <Setter Property="FontSize" Value="16"/>

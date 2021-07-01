@@ -123,6 +123,16 @@ namespace BinanceExchange.API.Client
         {
             return await _apiProcessor.ProcessGetRequest<ExchangeInfoResponse>(Endpoints.General.ExchangeInfo);
         }
+
+        /// <summary>
+        /// Current exchange trading rules and symbol information
+        /// </summary>
+        /// <returns><see cref="ExchangeInfoResponse"/></returns>
+        public async Task<ExchangeInfoResponse> GetExchangeInfoForPair(string Pair)
+        {
+            return await _apiProcessor.ProcessGetRequest<ExchangeInfoResponse>(Endpoints.General.ExchangeInfoForPair(Pair));
+        }
+
         #endregion
 
         #region Market Data
@@ -219,7 +229,6 @@ namespace BinanceExchange.API.Client
 
             return await _apiProcessor.ProcessGetRequest<SymbolOrderBookResponse>(Endpoints.MarketDataV3.BookTicker(symbol));
         }
-
 
         /// <summary>
         /// Gets the price for the provided symbol.  This is lighter weight than the daily ticker

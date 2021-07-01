@@ -9,7 +9,7 @@
         mc:Ignorable="d"
         Height="1080" Width="1920" 
         Background="Transparent" 
-        Title="Pro Trader"  WindowStartupLocation="CenterScreen" WindowState="Maximized">
+        Title="Pro Trader Prod"  WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.DataContext>
         <viewModel:MainViewModel />
@@ -34,7 +34,7 @@
                        FontSize="22"
                        Margin="10,0,0,0" FontFamily="/Fonts/#Poppins"
                        ></TextBlock>
-            <TextBlock Text="Trader"
+            <TextBlock Text="Trader Prod"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Left"
                        Foreground="#2ed191"
@@ -44,13 +44,13 @@
         
             <StackPanel Grid.Row="0" Grid.Column="0"  Orientation="Horizontal" HorizontalAlignment="Center"  >
 
-                <RadioButton Content="Home" IsChecked="True"
+                <!--<RadioButton Content="Home" IsChecked="True"
                              Command="{Binding HomeViewCommand}"
                              Height="50"
                              Foreground="#ff4265"
                              FontSize="17" FontFamily="/Fonts/#Poppins"
                              Style="{StaticResource MenuButtonTheme}"
-                             ></RadioButton>
+                             ></RadioButton>-->
 
                 <!--<RadioButton Content="Balance"
                              Height="50"

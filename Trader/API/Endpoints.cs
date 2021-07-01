@@ -85,6 +85,14 @@ namespace BinanceExchange.API
             /// </summary>
             public static BinanceEndpointData ExchangeInfo => new BinanceEndpointData(new Uri($"{APIPrefix}/{ApiVersion}/exchangeInfo"), EndpointSecurityType.None);
 
+            
+
+            public static BinanceEndpointData ExchangeInfoForPair(string Pair)
+            {
+                var endp= new Uri($"{APIPrefix}/v3/exchangeInfo?symbol=" + Pair);
+                return new  BinanceEndpointData(new Uri($"{APIPrefix}/{ApiVersion}/exchangeInfo?symbol="+Pair), EndpointSecurityType.None);
+            }
+
         }
 
         public static class MarketData

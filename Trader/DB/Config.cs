@@ -19,6 +19,7 @@ namespace Trader.Models
         public int MaxConsecutiveLossesBeforePause { get; set; }
         public string Botname { get; set; }
         public bool IsProd { get; set; }
+        public bool IsBuyingAllowed { get; set; }
         public decimal MinimumAmountToTradeWith { get; set; }
         public decimal BufferPriceForBuyAndSell { get; set; }
         public decimal CommisionAmount { get; set; }
@@ -40,8 +41,8 @@ namespace Trader.Models
         {
             modelBuilder.Entity<Config>().HasData(
                 new Config { id = 1,
-                    MaxPauses = 16,
-                    IntervalMinutes = 15,
+                    MaxPauses = 1,
+                    IntervalMinutes = 5,
                     TotalConsecutiveLosses = 0,
                     TotalCurrentPauses=0,
                      MaxConsecutiveLossesBeforePause = 3,

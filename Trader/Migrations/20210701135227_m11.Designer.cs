@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210701135227_m11")]
+    partial class m11
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -371,13 +373,7 @@ namespace Trader2.Migrations
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("isBuyCostAccurated")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAmountAccurated")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
@@ -491,13 +487,7 @@ namespace Trader2.Migrations
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("isBuyCostAccurated")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAmountAccurated")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");

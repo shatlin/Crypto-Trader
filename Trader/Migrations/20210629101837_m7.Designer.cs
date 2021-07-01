@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210629101837_m7")]
+    partial class m7
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -280,6 +282,9 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
+                    b.Property<int>("BuyCandleId")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("BuyCoinPrice")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -290,9 +295,6 @@ namespace Trader2.Migrations
 
                     b.Property<string>("BuyOrSell")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("BuyOrderId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("BuyTime")
                         .HasColumnType("datetime2");
@@ -343,15 +345,15 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
+                    b.Property<int>("SellCandleId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("SellCoinPrice")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellCommision")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
-
-                    b.Property<long>("SellOrderId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("SellTime")
                         .HasColumnType("datetime2");
@@ -370,15 +372,6 @@ namespace Trader2.Migrations
 
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("isBuyCostAccurated")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAmountAccurated")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -400,6 +393,9 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
+                    b.Property<int>("BuyCandleId")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("BuyCoinPrice")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -410,9 +406,6 @@ namespace Trader2.Migrations
 
                     b.Property<string>("BuyOrSell")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("BuyOrderId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("BuyTime")
                         .HasColumnType("datetime2");
@@ -463,15 +456,15 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
+                    b.Property<int>("SellCandleId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("SellCoinPrice")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellCommision")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
-
-                    b.Property<long>("SellOrderId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("SellTime")
                         .HasColumnType("datetime2");
@@ -490,15 +483,6 @@ namespace Trader2.Migrations
 
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("isBuyCostAccurated")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAmountAccurated")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -542,9 +526,6 @@ namespace Trader2.Migrations
                     b.Property<int>("IntervalMinutes")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsBuyingAllowed")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsProd")
                         .HasColumnType("bit");
 
@@ -574,11 +555,10 @@ namespace Trader2.Migrations
                             Botname = "DIANA",
                             BufferPriceForBuyAndSell = 0.075m,
                             CommisionAmount = 0.075m,
-                            IntervalMinutes = 5,
-                            IsBuyingAllowed = false,
+                            IntervalMinutes = 15,
                             IsProd = false,
                             MaxConsecutiveLossesBeforePause = 3,
-                            MaxPauses = 1,
+                            MaxPauses = 16,
                             MinimumAmountToTradeWith = 70m,
                             TotalConsecutiveLosses = 0,
                             TotalCurrentPauses = 0
@@ -594,9 +574,6 @@ namespace Trader2.Migrations
 
                     b.Property<string>("Coin")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TradePrecision")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
