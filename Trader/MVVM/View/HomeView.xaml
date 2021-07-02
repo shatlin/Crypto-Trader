@@ -34,18 +34,19 @@
         <DataGrid x:Name="PlayerGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
                   Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name"  Width="70" Binding="{Binding Name}"/>
-                <DataGridTextColumn Header="Pair" Width="100"  Binding="{Binding Pair}"/>
-                <DataGridTextColumn Header="BuyTime" Width="130" Binding="{Binding BuyTime}"/>
+                <DataGridTextColumn Header="Name"  Width="60" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="Pair" Width="120"  Binding="{Binding Pair}"/>
+                <DataGridTextColumn Header="Sell bel %" Width="90" Binding="{Binding SellBelowPerc, StringFormat=N2}"/>
+                <DataGridTextColumn Header="Sell abv %" Width="90" Binding="{Binding SellAbovePerc, StringFormat=N2}"/>
+                <DataGridTextColumn Header="BuyTime" Width="120" Binding="{Binding BuyTime}"/>
                 <DataGridTextColumn Header="Qty" Width="100" Binding="{Binding QuantityBought, StringFormat=N5}"/>
                 <DataGridTextColumn Header="Coin Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
                 <DataGridTextColumn Header="Coin Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Total Buy Cost" Width="130" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Total Curr Value" Width="150" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Last profit %" Width="120" Binding="{Binding LastRoundProfitPerc, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Curr Profit %" Width="120" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Sell bel %" Width="80" Binding="{Binding SellBelowPerc, StringFormat=N2}"/>
-                <DataGridTextColumn Header="Sell abv %" Width="80" Binding="{Binding SellAbovePerc, StringFormat=N2}"/>
+                <DataGridTextColumn Header="Buy Cost" Width="130" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Curr Value" Width="150" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
+               
+               
+                
                 <DataGridTextColumn Header="ProfitLossChanges"   Width="400" Binding="{Binding ProfitLossChanges}">
                     <DataGridTextColumn.ElementStyle>
                         <Style>
@@ -53,7 +54,9 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                
+
+                <DataGridTextColumn Header="Curr Profit %" Width="120" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
+
                 <DataGridTemplateColumn Header="Sell">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -69,7 +72,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-
+            
             </DataGrid.Columns>
         </DataGrid>
 
