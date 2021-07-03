@@ -40,8 +40,8 @@
                 <DataGridTextColumn Header="Sell abv %" Width="90" Binding="{Binding SellAbovePerc, StringFormat=N2}"/>
                 <DataGridTextColumn Header="BuyTime" Width="120" Binding="{Binding BuyTime}"/>
                 <DataGridTextColumn Header="Qty" Width="100" Binding="{Binding QuantityBought, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Coin Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Coin Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
+               
+            
                 <DataGridTextColumn Header="Buy Cost" Width="130" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
                 <DataGridTextColumn Header="Curr Value" Width="150" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
                
@@ -64,7 +64,9 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-
+                <DataGridTextColumn Header="Cn Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Cn Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
+                
                 <DataGridTemplateColumn Header="View">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

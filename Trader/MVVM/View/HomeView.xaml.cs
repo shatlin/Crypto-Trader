@@ -106,13 +106,14 @@ namespace Trader.MVVM.View
         BinanceClient client;
         public List<PlayerViewModel> PlayerViewModels;
         int backupOldCandlesCounter = 1;
-        public int UpdatePrecisionCounter = 1;
+        public int UpdatePrecisionCounter = 0;
         ILog logger;
         IMapper iPlaymerMapper;
         IMapper iCandleMapper;
         List<string> boughtCoins = new List<string>();
         List<Signal> CurrentSignals = new List<Signal>();
         public Config configr = new Config();
+        public bool ForceSell=false;
 
         public ExchangeInfoResponse exchangeInfo = new ExchangeInfoResponse();
 
@@ -269,6 +270,7 @@ namespace Trader.MVVM.View
             DB db = new DB();
             PlayerViewModel model = (sender as Button).DataContext as PlayerViewModel;
             Player player = await db.Player.Where(x => x.Pair == model.Pair).FirstOrDefaultAsync();
+            ForceSell = true;
             await Sell(player);
         }
 
@@ -637,7 +639,18 @@ namespace Trader.MVVM.View
             DB db = new DB();
             decimal mysellPrice = 0;
             SymbolPriceChangeTickerResponse PriceChangeResponse = new SymbolPriceChangeTickerResponse();
+            
+            if(player==null)
+            {
+                logger.Info("Player is returned is null. Some issue. Returning");
+            }
+
             var pair = player.Pair;
+
+            if (pair == null)
+            {
+                logger.Info("Pair returned as null. Some issue. Returning");
+            }
             PriceChangeResponse = await client.GetDailyTicker(pair);
             mysellPrice = PriceChangeResponse.LastPrice;
 
@@ -648,7 +661,7 @@ namespace Trader.MVVM.View
 
             decimal availableQty = await GetAvailQty(player, pair);
 
-            logger.Info("  FYI..For coin " + player.Pair + "  This is the avail Qty in binance " + availableQty + " Our DB shows available Qty as " + player.Quantity.Deci().Rnd(7));
+            //logger.Info("  FYI..For coin " + player.Pair + "  This is the avail Qty in binance " + availableQty + " Our DB shows available Qty as " + player.Quantity.Deci().Rnd(7));
 
             if (availableQty <= 0)
             {
@@ -696,9 +709,9 @@ namespace Trader.MVVM.View
             //    continue;
             //}
 
-            if ((prDiffPerc > player.SellAbovePerc) || (prDiffPerc < player.SellBelowPerc))
+            if ((prDiffPerc > player.SellAbovePerc) || (prDiffPerc < player.SellBelowPerc)||ForceSell==true)
             {
-                if (prDiffPerc < player.DontSellBelowPerc)
+                if ((prDiffPerc < player.DontSellBelowPerc) && ForceSell == false)
                 {
                     LogDontSellBelowPercReason(player, PriceChangeResponse, pair, mysellPrice, prDiffPerc);
                     player.LastRoundProfitPerc = prDiffPerc;
@@ -706,6 +719,8 @@ namespace Trader.MVVM.View
                     db.Player.Update(player);
                     return;
                 }
+
+                ForceSell = false;
 
                 var coin = MyCoins.Where(x => x.Coin + "USDT" == pair).FirstOrDefault();
                 var coinprecison = coin.TradePrecision;
@@ -775,6 +790,8 @@ namespace Trader.MVVM.View
                 player.BuyOrSell = string.Empty;
                 player.ProfitLossAmt = 0;
                 player.ProfitLossChanges = string.Empty;
+                player.BuyOrderId=0;
+                player.SellOrderId = 0;
                 db.Player.Update(player);
             }
             else
@@ -816,7 +833,7 @@ namespace Trader.MVVM.View
 
         public async Task UpdateAllowedPrecisionsForPairs()
         {
-            if (backupOldCandlesCounter % 100 == 0)
+            if (UpdatePrecisionCounter % 100 == 0)
             {
                 UpdatePrecisionCounter = 1;
 
@@ -923,8 +940,9 @@ namespace Trader.MVVM.View
 
             #region Sell
 
+            
+
             logger.Info("Selling scan Started for " + ProcessingTimeString);
-            Thread.Sleep(15000);
 
             try
             {
@@ -964,10 +982,14 @@ namespace Trader.MVVM.View
                sig.CandleCloseTime.ToString("dd-MMM HH:mm") +
              " " + player.Name +
             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+              " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
+              " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
              " CurCnPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
              " PrDif Curr & High -" + sig.PrDiffCurrAndHighPerc.Rnd().ToString().PadRight(12, ' ') +
-             " > -" + player.BuyBelowPerc.Deci().Rnd(0) +
+             " > -" + player.BuyBelowPerc.Deci().Rnd(2) +
               " Dont buy");
+
+
         }
 
         public void LogBuy(Player player, Signal sig)
@@ -977,9 +999,11 @@ namespace Trader.MVVM.View
                sig.CandleOpenTime.ToString("dd-MMM HH:mm") +
              " " + player.Name +
             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+              " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(12, ' ') +
+              " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(12, ' ') +
              " CurCnPr " + sig.CurrPr.Rnd().ToString().PadRight(12, ' ') +
              " PrDif Curr & High -" + sig.PrDiffCurrAndHighPerc.Rnd().ToString().PadRight(12, ' ') +
-             " < -" + player.BuyBelowPerc.Deci().Rnd(0) + " Buy Now ");
+             " < -" + player.BuyBelowPerc.Deci().Rnd(2) + " Buy Now ");
 
 
         }
@@ -1008,7 +1032,7 @@ namespace Trader.MVVM.View
             " TotBuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
             " TotSlPr  " + player.TotalSellAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
             " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(5) +
-            " > " + player.DontSellBelowPerc.Deci().Rnd(0) +
+            " > " + player.DontSellBelowPerc.Deci().Rnd(2) +
             " Not selling ");
 
 
@@ -1069,8 +1093,8 @@ namespace Trader.MVVM.View
                " TotBuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
                " TotSlPr  " + player.TotalSellAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
             " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
-            " < " + player.SellAbovePerc.Deci().Rnd(1).ToString().PadRight(3, ' ') +
-            " and > " + player.SellBelowPerc.Deci().Rnd(1) + " Dont Sell ");
+            " < " + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(3, ' ') +
+            " and > " + player.SellBelowPerc.Deci().Rnd(2) + " Dont Sell ");
 
 
 
