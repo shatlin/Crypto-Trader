@@ -38,7 +38,7 @@
                 <DataGridTextColumn Header="Pair" Width="120"  Binding="{Binding Pair}"/>
                 <DataGridTextColumn Header="Sell bel %" Width="90" Binding="{Binding SellBelowPerc, StringFormat=N2}"/>
                 <DataGridTextColumn Header="Sell abv %" Width="90" Binding="{Binding SellAbovePerc, StringFormat=N2}"/>
-                <DataGridTextColumn Header="BuyTime" Width="120" Binding="{Binding BuyTime}"/>
+                <DataGridTextColumn Header="Buy Time" Width="120" Binding="{Binding BuyTime}"/>
                 <DataGridTextColumn Header="Qty" Width="100" Binding="{Binding QuantityBought, StringFormat=N5}"/>
                
             
@@ -47,7 +47,7 @@
                
                
                 
-                <DataGridTextColumn Header="ProfitLossChanges"   Width="400" Binding="{Binding ProfitLossChanges}">
+                <DataGridTextColumn Header="Profit Loss Changes"   Width="400" Binding="{Binding ProfitLossChanges}">
                     <DataGridTextColumn.ElementStyle>
                         <Style>
                             <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
