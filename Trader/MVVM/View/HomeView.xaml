@@ -30,7 +30,7 @@
 
         <TextBlock x:Name="lblBotName" Foreground="#2ed191"  FontSize="24" Grid.Row="0" Grid.Column="5" Text=" "  />
 
-        <DataGrid x:Name="PlayerGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1"
+        <DataGrid x:Name="PlayerGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1" 
                   Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name"  Width="60" Binding="{Binding Name}"/>
@@ -41,12 +41,12 @@
                 <DataGridTextColumn Header="Qty" Width="100" Binding="{Binding QuantityBought, StringFormat=N5}"/>
                
             
-                <DataGridTextColumn Header="Buy Cost" Width="130" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
-                <DataGridTextColumn Header="Curr Value" Width="150" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Buy Cost" Width="100" Binding="{Binding TotalBuyCost, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Curr Value" Width="100" Binding="{Binding TotalCurrentValue, StringFormat=N5}"/>
                
                
                 
-                <DataGridTextColumn Header="Profit Loss Changes"   Width="400" Binding="{Binding ProfitLossChanges}">
+                <DataGridTextColumn Header="Profit Loss Changes"   Width="580" Binding="{Binding ProfitLossChanges}">
                     <DataGridTextColumn.ElementStyle>
                         <Style>
                             <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
@@ -54,9 +54,9 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Curr Profit %" Width="120" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
+                <DataGridTextColumn Header="Curr Profit %" Width="100" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
 
-                <DataGridTemplateColumn Header="Sell">
+                <DataGridTemplateColumn Header="Sell" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Click="SellThisBot" Height="40" Width="60">Sell</Button>
@@ -65,8 +65,8 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Cn Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
                 <DataGridTextColumn Header="Cn Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
-                
-                <DataGridTemplateColumn Header="View">
+
+                <DataGridTemplateColumn Header="View" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Click="ViewCoin" Height="40" Width="60">View</Button>
@@ -77,7 +77,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Button x:Name="btnClearRobot" Click="btnClearPlayer_Click"  Content="Clear Data" VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="1"
+        <Button x:Name="btnClearRobot" Click="btnClearPlayer_Click"  Content="Clear Data" VerticalAlignment="Top" Visibility="Hidden"   FontFamily="/Fonts/#Poppins"   Grid.Row="2" Grid.Column="1"
            HorizontalAlignment="Right"   Style="{StaticResource ButtonTheme}"   />
 
         <!--<Button x:Name="btnUpdateBalance" Content="Refresh Balance" VerticalAlignment="Top"  FontFamily="/Fonts/#Poppins"  
@@ -92,7 +92,7 @@
 
      
         
-        <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  VerticalAlignment="Top"   FontFamily="/Fonts/#Poppins"
+        <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
            Grid.Row="2" Grid.Column="3" Click="btnTrade_Click"  Style="{StaticResource ButtonTheme}" />
 
 

@@ -16,6 +16,7 @@ namespace Trader.Models
         public decimal CurrPr { get; set; }
         public decimal DayLowPr { get; set; }
         public decimal DayHighPr { get; set; }
+        public decimal DayAveragePr { get; set; }
         public decimal DayVol { get; set; }
         public decimal DayTradeCount { get; set; }
 
