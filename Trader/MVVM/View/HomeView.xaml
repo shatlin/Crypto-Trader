@@ -46,7 +46,7 @@
                
                
                 
-                <DataGridTextColumn Header="Profit Loss Changes"   Width="580" Binding="{Binding ProfitLossChanges}">
+                <DataGridTextColumn Header="Profit Loss Changes"   Width="640" Binding="{Binding ProfitLossChanges}">
                     <DataGridTextColumn.ElementStyle>
                         <Style>
                             <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
@@ -56,13 +56,13 @@
 
                 <DataGridTextColumn Header="Curr Profit %" Width="100" Binding="{Binding CurrentRoundProfitPerc, StringFormat=N5}"/>
 
-                <DataGridTemplateColumn Header="Sell" Width="80">
+                <!--<DataGridTemplateColumn Header="Sell" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Click="SellThisBot" Height="40" Width="60">Sell</Button>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                </DataGridTemplateColumn>-->
                 <DataGridTextColumn Header="Cn Buy Pr" Width="120" Binding="{Binding BuyPricePerCoin, StringFormat=N5}"/>
                 <DataGridTextColumn Header="Cn Curr Pr" Width="120" Binding="{Binding CurrentPricePerCoin, StringFormat=N5}"/>
 

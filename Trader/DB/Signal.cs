@@ -26,7 +26,6 @@ namespace Trader.Models
         public decimal RefDayVol { get; set; }
         public int RefDayTradeCount { get; set; }
 
-       
         public decimal DayPrDiffPercentage { get; set; }
         public decimal PrDiffCurrAndHighPerc { get; set; }
         public decimal PrDiffCurrAndLowPerc { get; set; }
@@ -41,6 +40,9 @@ namespace Trader.Models
         public int CandleId { get; set; }
         public DateTime CandleOpenTime { get; set; }
         public DateTime CandleCloseTime { get; set; }
+        public int TotalPreviousUps { get; set; }
+        public int TotalPreviousDowns { get; set; }
+        public decimal PriceChangeInLastHour { get; set; }
     }
 
    

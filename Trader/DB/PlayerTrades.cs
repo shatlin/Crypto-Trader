@@ -20,7 +20,10 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? DayHigh { get; set; }
         public decimal? DayLow { get; set; }
-       
+
+        public decimal? HardSellPerc { get; set; }
+        public bool isBuyOrderCompleted { get; set; }
+
         public decimal? BuyBelowPerc { get; set; }
         public decimal? SellBelowPerc { get; set; }
         public decimal? SellAbovePerc { get; set; }
@@ -81,7 +84,8 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.SellAbovePerc).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.ProfitLossAmt).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.LastRoundProfitPerc).IsRequired().HasColumnType("decimal(30, 12)");
-            
+            builder.Property(e => e.HardSellPerc).IsRequired().HasColumnType("decimal(30, 12)");
+
         }
 
     }
