@@ -61,7 +61,7 @@ namespace BinanceExchange.API.Websockets
         public async Task<Guid> ConnectToUserDataWebSocket(UserDataWebSocketMessages userDataMessageHandlers)
         {
             Guard.AgainstNull(BinanceClient, nameof(BinanceClient));
-            Logger.Debug("Connecting to User Data Web Socket");
+            //Logger.Debug("Connecting to User Data Web Socket");
             var streamResponse = await BinanceClient.StartUserDataStream();
             ListenKey = streamResponse.ListenKey;
             var endpoint = new Uri($"{BaseWebsocketUri}/{ListenKey}");
@@ -79,7 +79,7 @@ namespace BinanceExchange.API.Websockets
         public Guid ConnectToKlineWebSocket(string symbol, KlineInterval interval, BinanceWebSocketMessageHandler<BinanceKlineData> messageEventHandler)
         {
             Guard.AgainstNullOrEmpty(symbol, nameof(symbol));
-            Logger.Debug("Connecting to Kline Web Socket");
+           // Logger.Debug("Connecting to Kline Web Socket");
             var endpoint = new Uri($"{BaseWebsocketUri}/{symbol.ToLower()}@kline_{EnumExtensions.GetEnumMemberValue(interval)}");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -93,7 +93,7 @@ namespace BinanceExchange.API.Websockets
         public Guid ConnectToDepthWebSocket(string symbol, BinanceWebSocketMessageHandler<BinanceDepthData> messageEventHandler)
         {
             Guard.AgainstNullOrEmpty(symbol, nameof(symbol));
-            Logger.Debug("Connecting to Depth Web Socket");
+           // Logger.Debug("Connecting to Depth Web Socket");
             var endpoint = new Uri($"{BaseWebsocketUri}/{symbol.ToLower()}@depth");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -107,7 +107,7 @@ namespace BinanceExchange.API.Websockets
         public Guid ConnectToPartialDepthWebSocket(string symbol, PartialDepthLevels levels, BinanceWebSocketMessageHandler<BinancePartialData> messageEventHandler)
         {
             Guard.AgainstNullOrEmpty(symbol, nameof(symbol)); 
-            Logger.Debug("Connecting to Partial Depth Web Socket");
+            //Logger.Debug("Connecting to Partial Depth Web Socket");
             var endpoint = new Uri($"{BaseWebsocketUri}/{symbol.ToLower()}@depth{(int)levels}");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -121,7 +121,7 @@ namespace BinanceExchange.API.Websockets
         {
             Guard.AgainstNullOrEmpty(symbols, nameof(symbols));
             symbols = PrepareCombinedSymbols.CombinedDepth(symbols);
-            Logger.Debug("Connecting to Combined Depth Web Socket");
+           // Logger.Debug("Connecting to Combined Depth Web Socket");
             var endpoint = new Uri($"{CombinedWebsocketUri}={symbols}");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -137,7 +137,7 @@ namespace BinanceExchange.API.Websockets
             Guard.AgainstNullOrEmpty(symbols, nameof(symbols));
             Guard.AgainstNullOrEmpty(depth, nameof(depth));
             symbols = PrepareCombinedSymbols.CombinedPartialDepth(symbols, depth);
-            Logger.Debug("Connecting to Combined Partial Depth Web Socket");
+            //Logger.Debug("Connecting to Combined Partial Depth Web Socket");
             var endpoint = new Uri($"{CombinedWebsocketUri}={symbols}");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -151,7 +151,7 @@ namespace BinanceExchange.API.Websockets
         public Guid ConnectToTradesWebSocket(string symbol, BinanceWebSocketMessageHandler<BinanceAggregateTradeData> messageEventHandler)
         {
             Guard.AgainstNullOrEmpty(symbol, nameof(symbol));
-            Logger.Debug("Connecting to Trades Web Socket");
+           // Logger.Debug("Connecting to Trades Web Socket");
             var endpoint = new Uri($"{BaseWebsocketUri}/{symbol.ToLower()}@aggTrade");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -165,7 +165,7 @@ namespace BinanceExchange.API.Websockets
         public Guid ConnectToIndividualSymbolTickerWebSocket(string symbol, BinanceWebSocketMessageHandler<BinanceTradeData> messageEventHandler)
         {
             Guard.AgainstNullOrEmpty(symbol, nameof(symbol));
-            Logger.Debug("Connecting to Individual Symbol Ticker Web Socket");
+           // Logger.Debug("Connecting to Individual Symbol Ticker Web Socket");
             var endpoint = new Uri($"{BaseWebsocketUri}/{symbol.ToLower()}@ticker");
             return CreateBinanceWebSocket(endpoint, messageEventHandler);
         }
@@ -187,11 +187,11 @@ namespace BinanceExchange.API.Websockets
             var websocket = new BinanceWebSocket(endpoint.AbsoluteUri);
             websocket.OnOpen += (sender, e) =>
             {
-                Logger.Debug($"WebSocket Opened:{endpoint.AbsoluteUri}");
+              //  Logger.Debug($"WebSocket Opened:{endpoint.AbsoluteUri}");
             };
             websocket.OnMessage += (sender, e) =>
             {
-                Logger.Debug($"WebSocket Message Received on Endpoint: {endpoint.AbsoluteUri}");
+              //  Logger.Debug($"WebSocket Message Received on Endpoint: {endpoint.AbsoluteUri}");
                 var primitive = JsonConvert.DeserializeObject<BinanceWebSocketResponse>(e.Data);
                 switch (primitive.EventType)
                 {
@@ -244,11 +244,11 @@ namespace BinanceExchange.API.Websockets
             var websocket = new BinanceWebSocket(endpoint.AbsoluteUri);
             websocket.OnOpen += (sender, e) =>
             {
-                Logger.Debug($"WebSocket Opened:{endpoint.AbsoluteUri}");
+               // Logger.Debug($"WebSocket Opened:{endpoint.AbsoluteUri}");
             };
             websocket.OnMessage += (sender, e) =>
             {
-                Logger.Debug($"WebSocket Messge Received on: {endpoint.AbsoluteUri}");
+               // Logger.Debug($"WebSocket Messge Received on: {endpoint.AbsoluteUri}");
                 //TODO: Log message received
                 var data = JsonConvert.DeserializeObject<T>(e.Data);
                 messageEventHandler(data);

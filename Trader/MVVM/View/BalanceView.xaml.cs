@@ -1048,7 +1048,6 @@ namespace Trader.MVVM.View
         //}
 
 
-
         #region QA
         //private async void btnClearPlayer_Click(object sender, RoutedEventArgs e)
         //{
