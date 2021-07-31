@@ -12,7 +12,7 @@ namespace Trader.Models
     {
         public int Id { get; set; }
         public string Symbol { get; set; }
-
+        public long CurrentTradeCount { get; set; }
         public decimal CurrPr { get; set; }
         public decimal DayLowPr { get; set; }
         public decimal DayHighPr { get; set; }
@@ -23,26 +23,32 @@ namespace Trader.Models
         public decimal RefAvgCurrPr { get; set; }
         public decimal RefLowPr { get; set; }
         public decimal RefHighPr { get; set; }
-        public decimal RefDayVol { get; set; }
-        public int RefDayTradeCount { get; set; }
+        public decimal RefVol { get; set; }
+        public int RefTradeCount { get; set; }
 
         public decimal DayPrDiffPercentage { get; set; }
         public decimal PrDiffCurrAndHighPerc { get; set; }
         public decimal PrDiffCurrAndLowPerc { get; set; }
         public decimal CurrPrDiffSigAndRef { get; set; }
+
         public bool IsOnUpTrend { get; set; }
         public bool IsBestTimeToBuy { get; set; }
         public bool IsBestTimeToSell { get; set; }
+
         public bool IsCloseToDayHigh { get; set; }
         public bool IsCloseToDayLow { get; set; }
+
         public bool IsPicked { get; set; }
         public bool IsIgnored { get; set; }
         public int CandleId { get; set; }
         public DateTime CandleOpenTime { get; set; }
         public DateTime CandleCloseTime { get; set; }
+
         public int TotalPreviousUps { get; set; }
         public int TotalPreviousDowns { get; set; }
+
         public decimal PriceChangeInLastHour { get; set; }
+        public decimal LastTradePrice { get; set; }
     }
 
    
