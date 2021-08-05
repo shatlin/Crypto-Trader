@@ -36,7 +36,7 @@ namespace BinanceExchange.API.Models.Response
         public decimal? Quantity { get; set; }
         public decimal? BuyCommision { get; set; }
         public decimal? SellCommision { get; set; }
-
+        public bool isBuyAllowed { get; set; }
         public decimal? LastRoundProfitPerc { get; set; }
 
         public decimal? TotalBuyCost { get; set; }
@@ -47,6 +47,7 @@ namespace BinanceExchange.API.Models.Response
         
         public DateTime? BuyTime { get; set; }
         public DateTime? SellTime { get; set; }
+        public DateTime? WaitTillCancellingOrderTime { get; set; }
         public long BuyOrderId { get; set; }
         public long SellOrderId { get; set; }
 

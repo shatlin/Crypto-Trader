@@ -20,7 +20,9 @@ namespace Trader.Models
         public string Botname { get; set; }
         public bool IsProd { get; set; }
         public bool IsBuyingAllowed { get; set; }
+        public bool IsSellingAllowed { get; set; }
         public decimal MinimumAmountToTradeWith { get; set; }
+        public decimal MaximumAmountForaBot { get; set; }
         public decimal BufferPriceForBuyAndSell { get; set; }
         public decimal CommisionAmount { get; set; }
     }
@@ -30,6 +32,7 @@ namespace Trader.Models
         public void Configure(EntityTypeBuilder<Config> builder)
         {
             builder.Property(e => e.MinimumAmountToTradeWith).IsRequired().HasColumnType("decimal(18, 2)");
+            builder.Property(e => e.MaximumAmountForaBot).IsRequired().HasColumnType("decimal(18, 2)");
             builder.Property(e => e.BufferPriceForBuyAndSell).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.CommisionAmount).IsRequired().HasColumnType("decimal(18, 12)");
         }
