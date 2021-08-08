@@ -24,6 +24,7 @@ namespace Trader.Models
         public bool IsSellingAllowed { get; set; }
         public decimal MinimumAmountToTradeWith { get; set; }
         public decimal MaximumAmountForaBot { get; set; }
+        public decimal DivideHighAndAverageBy { get; set; }
         public decimal BufferPriceForBuyAndSell { get; set; }
         public decimal CommisionAmount { get; set; }
     }
@@ -36,6 +37,7 @@ namespace Trader.Models
             builder.Property(e => e.MaximumAmountForaBot).IsRequired().HasColumnType("decimal(18, 2)");
             builder.Property(e => e.BufferPriceForBuyAndSell).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.CommisionAmount).IsRequired().HasColumnType("decimal(18, 12)");
+            builder.Property(e => e.DivideHighAndAverageBy).IsRequired().HasColumnType("decimal(18, 12)");
         }
     }
 
@@ -43,20 +45,20 @@ namespace Trader.Models
     {
         public static void SeedConfig(this ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Config>().HasData(
-                new Config { id = 1,
-                    MaxPauses = 1,
-                    IntervalMinutes = 5,
-                    TotalConsecutiveLosses = 0,
-                    TotalCurrentPauses=0,
-                     MaxConsecutiveLossesBeforePause = 3,
-                      Botname = "DIANA",
-                       IsProd = false,
-                       MinimumAmountToTradeWith = 70,
-                      BufferPriceForBuyAndSell = 0.075M,
-                      CommisionAmount =0.075M
-                }
-              );
+            //modelBuilder.Entity<Config>().HasData(
+            //    new Config { id = 1,
+            //        MaxPauses = 1,
+            //        IntervalMinutes = 5,
+            //        TotalConsecutiveLosses = 0,
+            //        TotalCurrentPauses=0,
+            //         MaxConsecutiveLossesBeforePause = 3,
+            //          Botname = "DIANA",
+            //           IsProd = false,
+            //           MinimumAmountToTradeWith = 70,
+            //          BufferPriceForBuyAndSell = 0.075M,
+            //          CommisionAmount =0.075M
+            //    }
+            //  );
         }
     }
 

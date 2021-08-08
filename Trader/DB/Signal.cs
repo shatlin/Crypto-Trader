@@ -29,7 +29,10 @@ namespace Trader.Models
 
         public decimal PrDiffHighAndLowPerc { get; set; }
         public decimal PrDiffCurrAndHighPerc { get; set; }
-        
+
+        public decimal PercBelowDayHighToBuy { get; set; }
+        public decimal PercAboveDayLowToSell { get; set; }
+
         public decimal PrDiffCurrAndLowPerc { get; set; }
         public decimal CurrPrDiffSigAndRef { get; set; }
 

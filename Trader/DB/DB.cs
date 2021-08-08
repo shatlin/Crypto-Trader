@@ -49,6 +49,7 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
             modelBuilder.ApplyConfiguration(new SignalCandleConfiguration());
+            modelBuilder.ApplyConfiguration(new CoinConfiguration());
         }
     }
 
