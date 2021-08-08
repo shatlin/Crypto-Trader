@@ -13,6 +13,7 @@ namespace Trader.Models
     {
         public int id{get;set; }
         public int MaxPauses { get; set; }
+        public int MaxRepsBeforeCancelOrder { get; set; }
         public int IntervalMinutes { get; set; }
         public int TotalConsecutiveLosses { get; set; }
         public int TotalCurrentPauses { get; set; }

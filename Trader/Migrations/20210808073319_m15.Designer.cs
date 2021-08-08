@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210808073319_m15")]
+    partial class m15
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -258,9 +260,6 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<int>("RepsTillCancelOrder")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("SellAbovePerc")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -297,13 +296,22 @@ namespace Trader2.Migrations
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("WaitTillCancellingOrderTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("isBuyAllowed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("isBuyCostAccurated")
                         .HasColumnType("bit");
 
                     b.Property<bool>("isBuyOrderCompleted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("isSellAllowed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("isSellAmountAccurated")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
@@ -385,9 +393,6 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<int>("RepsTillCancelOrder")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("SellAbovePerc")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -424,13 +429,22 @@ namespace Trader2.Migrations
                     b.Property<DateTime?>("UpdatedTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("WaitTillCancellingOrderTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("isBuyAllowed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("isBuyCostAccurated")
                         .HasColumnType("bit");
 
                     b.Property<bool>("isBuyOrderCompleted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("isSellAllowed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("isSellAmountAccurated")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
@@ -490,9 +504,6 @@ namespace Trader2.Migrations
                     b.Property<int>("MaxPauses")
                         .HasColumnType("int");
 
-                    b.Property<int>("MaxRepsBeforeCancelOrder")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("MaximumAmountForaBot")
                         .HasColumnType("decimal(18,2)");
 
@@ -522,7 +533,6 @@ namespace Trader2.Migrations
                             IsSellingAllowed = false,
                             MaxConsecutiveLossesBeforePause = 3,
                             MaxPauses = 1,
-                            MaxRepsBeforeCancelOrder = 0,
                             MaximumAmountForaBot = 0m,
                             MinimumAmountToTradeWith = 70m,
                             TotalConsecutiveLosses = 0,

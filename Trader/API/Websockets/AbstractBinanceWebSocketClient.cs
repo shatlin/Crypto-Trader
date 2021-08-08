@@ -34,8 +34,8 @@ namespace BinanceExchange.API.Websockets
         /// <summary>
         /// Used for deletion on the fly
         /// </summary>
-        protected Dictionary<Guid, BinanceWebSocket> ActiveWebSockets;
-        protected List<BinanceWebSocket> AllSockets;
+        public Dictionary<Guid, BinanceWebSocket> ActiveWebSockets;
+        public List<BinanceWebSocket> AllSockets;
         protected readonly IBinanceClient BinanceClient;
         protected ILog Logger;
 

@@ -9,15 +9,12 @@ namespace BinanceExchange.API.Models.Response
 {
     public class PlayerTrades
     {
-
         public int Id { get; set; }
         public string Name { get; set; }
         public string Pair { get; set; }
         public bool IsTrading { get; set; }
         public bool isSellAllowed { get; set; }
-        public bool isBuyCostAccurated { get; set; }
-        public bool isSellAmountAccurated { get; set; }
-
+       
         public decimal? DayHigh { get; set; }
         public decimal? DayLow { get; set; }
 
@@ -38,16 +35,14 @@ namespace BinanceExchange.API.Models.Response
         public decimal? SellCommision { get; set; }
         public bool isBuyAllowed { get; set; }
         public decimal? LastRoundProfitPerc { get; set; }
-
+        public int RepsTillCancelOrder { get; set; } // 10
         public decimal? TotalBuyCost { get; set; }
         public decimal? TotalCurrentValue { get; set; }
         public decimal? TotalSellAmount { get; set; }
         public decimal? AvailableAmountToBuy { get; set; }
-
         
         public DateTime? BuyTime { get; set; }
         public DateTime? SellTime { get; set; }
-        public DateTime? WaitTillCancellingOrderTime { get; set; }
         public long BuyOrderId { get; set; }
         public long SellOrderId { get; set; }
 
@@ -88,7 +83,6 @@ namespace BinanceExchange.API.Models.Response
             builder.Property(e => e.HardSellPerc).IsRequired().HasColumnType("decimal(30, 12)");
 
         }
-
     }
 
 }

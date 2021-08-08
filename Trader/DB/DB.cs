@@ -22,18 +22,17 @@ namespace Trader.Models
         public DbSet<APIDetails> API { get; set; }
         public DbSet<Balance> Balance { get; set; }
         public DbSet<Candle> Candle { get; set; }
-        public DbSet<CandleBackUp> CandleBackUp { get; set; }
         public DbSet<MyTrade> MyTrade { get; set; }
         public DbSet<MyCoins> MyCoins { get; set; }
         public DbSet<Player> Player { get; set; }
         public DbSet<PlayerTrades> PlayerTrades { get; set; }
         public DbSet<Config> Config { get; set; }
-
+        public DbSet<SignalCandle> SignalCandle { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=TraderProd;Integrated Security=True;Connect Timeout=60");
+                optionsBuilder.UseSqlServer("Data Source=localhost;Initial Catalog=TraderProdV2;Integrated Security=True;Connect Timeout=60");
                 base.OnConfiguring(optionsBuilder);
             }
         }
@@ -46,9 +45,10 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new ConfigConfiguration()).SeedConfig();
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
-            modelBuilder.ApplyConfiguration(new CandleBackUpConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
+            modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
+            modelBuilder.ApplyConfiguration(new SignalCandleConfiguration());
         }
     }
 
