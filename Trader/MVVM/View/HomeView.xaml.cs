@@ -120,7 +120,7 @@ namespace Trader.MVVM.View
         InstanceBinanceWebSocketClient socket;
         public ExchangeInfoResponse exchangeInfo = new ExchangeInfoResponse();
         public bool isControlCurrentlyInTradeMethod = false;
-
+        List<Task> tasks = new List<Task>();
         public HomeView()
         {
             InitializeComponent();
@@ -170,35 +170,46 @@ namespace Trader.MVVM.View
             logger.Info("");
         }
 
-        private void EnsureSocketRunning(string pair)
+        private void EnsureSocketRunning()
         {
-            foreach (var sig in CurrentSignals)
+            Parallel.ForEach(MyCoins, coin =>
             {
-                if (sig.Symbol == pair)
+                foreach (var sig in CurrentSignals)
                 {
-                    if (sig.IsSymbolTickerSocketRunning == false)
+                    if (sig.Symbol == coin.Coin)
                     {
-                        try
+                        if (sig.IsSymbolTickerSocketRunning == false)
                         {
-                            if (sig.TickerSocketGuid != Guid.Empty) socket.CloseWebSocketInstance(sig.TickerSocketGuid);
-                            sig.TickerSocketGuid = socket.ConnectToIndividualSymbolTickerWebSocket(pair, b => { sig.CurrPr = b.LastPrice; sig.IsSymbolTickerSocketRunning = true; });
-                            logger.Info("Price Ticker socket started for " + pair);
-                        }
-                        catch
-                        {
-                            sig.IsSymbolTickerSocketRunning = false;
-                            logger.Info("exception at SymbolTickerSocket for " + pair);
-                            Thread.Sleep(100);
-                        }
-                    }
+                            // tasks.Add(Task.Factory.StartNew(() =>
+                            // {
+                            try
+                            {
+                                if (sig.TickerSocketGuid != Guid.Empty) socket.CloseWebSocketInstance(sig.TickerSocketGuid);
 
-                    if (sig.IsDailyKlineSocketRunning == false)
-                    {
-                        try
-                        {
-                            if (sig.KlineSocketGuid != Guid.Empty) socket.CloseWebSocketInstance(sig.KlineSocketGuid);
 
-                            sig.KlineSocketGuid = socket.ConnectToKlineWebSocket(pair, KlineInterval.OneDay, b =>
+                                sig.TickerSocketGuid = socket.ConnectToIndividualSymbolTickerWebSocket(coin.Coin, b => { sig.CurrPr = b.LastPrice; sig.IsSymbolTickerSocketRunning = true; });
+
+                                logger.Info("Ticker socket started for " + coin.Coin);
+                            }
+                            catch
+                            {
+                                sig.IsSymbolTickerSocketRunning = false;
+                                logger.Info("exception at Ticker socket for " + coin.Coin);
+                                Thread.Sleep(100);
+                            }
+                            //  }));
+                        }
+
+                        if (sig.IsDailyKlineSocketRunning == false)
+                        {
+                            // tasks.Add(Task.Factory.StartNew(() =>
+                            //{
+                            try
+                            {
+                                if (sig.KlineSocketGuid != Guid.Empty) socket.CloseWebSocketInstance(sig.KlineSocketGuid);
+
+
+                                sig.KlineSocketGuid = socket.ConnectToKlineWebSocket(coin.Coin, KlineInterval.OneDay, b =>
                             {
                                 sig.OpenTime = b.Kline.StartTime;
                                 sig.CloseTime = b.Kline.EndTime;
@@ -211,24 +222,31 @@ namespace Trader.MVVM.View
                                 sig.PrDiffCurrAndLowPerc = sig.CurrPr.GetDiffPercBetnNewAndOld(sig.DayLowPr);
                                 sig.PrDiffCurrAndHighPerc = sig.CurrPr.GetDiffPercBetnNewAndOld(sig.DayHighPr);
                                 sig.JustRecoveredFromDayLow = sig.PrDiffCurrAndLowPerc >= 1M && sig.PrDiffCurrAndLowPerc <= 2M;
-                                sig.IsAtDayLow = sig.PrDiffCurrAndLowPerc <= 1M;
-                                sig.IsAtDayHigh = sig.PrDiffCurrAndHighPerc > -0.4M;
-                                sig.IsDailyKlineSocketRunning = true;
+                                sig.IsAtDayLow = sig.PrDiffCurrAndLowPerc >= 0.5M && sig.PrDiffCurrAndLowPerc <= 1.5M;
+                                sig.PercBelowDayHighToBuy = coin.PercBelowDayHighToBuy;
+                                sig.PercAboveDayLowToSell = coin.PercAboveDayLowToSell;
+                                // has gone to the bottom and gone up a bit. Then we know the lowest is reached
+                                sig.IsAtDayHigh = sig.PrDiffCurrAndHighPerc <= -0.5M && sig.PrDiffCurrAndHighPerc >= -1.5M;
+                                    // has gone to the top and gone down a little bit. Then we know the higest is reached
+                                    sig.IsDailyKlineSocketRunning = true;
                             });
 
-                            logger.Info("DailyKlineSocket socket started for " + pair);
+                                logger.Info("Kline  socket started for " + coin.Coin);
 
+                            }
+                            catch
+                            {
+                                sig.IsDailyKlineSocketRunning = false;
+                                logger.Info("exception at Kline socket for " + coin.Coin);
+                                Thread.Sleep(100);
+                            }
+                            // }));
                         }
-                        catch
-                        {
-                            sig.IsDailyKlineSocketRunning = false;
-                            logger.Info("exception at KlineSocket for " + pair);
-                            Thread.Sleep(100);
-                        }
+                        break;
                     }
-                    break;
                 }
-            }
+                //  Task.WaitAll(tasks.ToArray());
+            });
 
         }
 
@@ -244,22 +262,14 @@ namespace Trader.MVVM.View
                 sig.RefFiveMinCandles = new List<SignalCandle>();
                 sig.RefHourCandles = new List<SignalCandle>();
                 sig.PercBelowDayHighToBuy = coin.PercBelowDayHighToBuy;
-                sig.PercAboveDayLowToSell=coin.PercAboveDayLowToSell;
+                sig.PercAboveDayLowToSell = coin.PercAboveDayLowToSell;
                 CurrentSignals.Add(sig);
             }
 
-            CheckSockets();
+            EnsureSocketRunning();
 
             logger.Info("Get signals completed");
             logger.Info("");
-        }
-
-        private void CheckSockets()
-        {
-            foreach (var coin in MyCoins)
-            {
-                EnsureSocketRunning(coin.Coin);
-            }
         }
 
         private void CollectReferenceCandles()
@@ -414,12 +424,12 @@ namespace Trader.MVVM.View
                 //1. There should be at least 6% difference between high and low
                 //2. Current price should be at least 6% lower than the high price
                 //3. High Percentage should be atleast 6% bigger than low percentage
-                sig.IsBestTimeToBuyAtDayLowest = sig.CurrPr > 0 && sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.JustRecoveredFromDayLow;
+                sig.IsBestTimeToBuyAtDayLowest = sig.CurrPr > 0 && sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.IsAtDayLow;
 
                 //To sell at highest
 
                 //1. There should be at least 6% difference between high and low
-                sig.IsBestTimeToSellAtDayHighest = sig.CurrPr > 0 && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.IsAtDayHigh && sig.isLastThreeFiveMinsGoingUp == false;
+                sig.IsBestTimeToSellAtDayHighest = sig.CurrPr > 0 && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.IsAtDayHigh;
             }
         }
 
@@ -493,11 +503,11 @@ namespace Trader.MVVM.View
         private void LogDecisions()
         {
             logger.Info("");
-            logger.Info("Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+
 
             logger.Info("");
             logger.Info("Buyables");
-            logger.Info("");
+            logger.Info("--------");
 
             foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
             {
@@ -516,31 +526,26 @@ namespace Trader.MVVM.View
                     log += " Day Buy : Yes ";
                 //if (sig.IsBestTimeToScalpBuy)
                 //    log += " Scalp Buy : Yes ";
-                if(sig.IsBestTimeToBuyAtDayLowest) //|| sig.IsBestTimeToScalpBuy
+                if (sig.IsBestTimeToBuyAtDayLowest) //|| sig.IsBestTimeToScalpBuy
                     logger.Info(log);
             }
 
-            //logger.Info("");
-            //logger.Info("Not Day Low Buyables PrDiffCurrAndHighPerc > -8M && JustRecoveredFromDayLow==false ( PrDiffCurrAndLowPerc not betn 1 % and 2 % ) ");
-            //logger.Info("");
-            //foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndLowPerc))
-            //{
-            //    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-            //                     " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " Dihi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " hi+avg/2.1 : " + ((sig.DayHighPr + sig.DayAveragePr) / 2.1M).Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " ClsToLow : " + sig.IsCloseToDayLow.ToString().PadRight(8, ' ') +
-            //                     " 2downs : " + sig.isLastTwoFiveMinsGoingDown.ToString().PadRight(6, ' ') +
-            //                     " PrCh " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(8, ' ');
-
-            //    if (!sig.IsBestTimeToBuyAtDayLowest)
-            //        logger.Info(log + " Day Buy : No");
-
-            //}
+            logger.Info("");
+            logger.Info("Not Buyables");
+            logger.Info("--------");
+            foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndLowPerc))
+            {
+                string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
+                               " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
+                               " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
+                               " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
+                               " DiCr&LwPrc " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
+                               " PrDiCr&LwPrc " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') + " > 0.5 & < 1.5 ? : " + (sig.PrDiffCurrAndLowPerc >= 0.5M && sig.PrDiffCurrAndLowPerc <= 1.5M).ToString().PadRight(6, ' ') +
+                               " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(9, ' ') + " < "+sig.PercBelowDayHighToBuy.Rnd(0)+" ? : " + (sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy).ToString().PadRight(6, ' ') +
+                               " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(9, ' ') + " > "+sig.PercAboveDayLowToSell.Rnd(0) +" ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString();
+                if (!sig.IsBestTimeToBuyAtDayLowest)
+                    logger.Info(log);
+            }
             //logger.Info("");
             //logger.Info("Scalp Buyables");
 
@@ -585,8 +590,8 @@ namespace Trader.MVVM.View
 
 
             logger.Info("");
-            logger.Info("Day High Sellables");
-            logger.Info("");
+            logger.Info("Sellables");
+            logger.Info("---------");
 
             foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
             {
@@ -643,7 +648,7 @@ namespace Trader.MVVM.View
             //    }
             //}
             //logger.Info("");
-            logger.Info("*************************************************************************************************************************************************************************************************************");
+
         }
 
         private async Task BuyTheCoin(Player player, Signal sig)
@@ -828,7 +833,7 @@ namespace Trader.MVVM.View
                 logger.Info("Buy order still pending for " + newPlayer.Pair + " " + newPlayer.Name);
                 return;
             }
-           
+
             player.DayHigh = sig.DayHighPr;
             player.DayLow = sig.DayLowPr;
             player.UpdatedTime = DateTime.Now;
@@ -896,7 +901,7 @@ namespace Trader.MVVM.View
 
             if (sig != null)
             {
-                logger.Info("  " +sig.OpenTime.ToString("dd-MMM HH:mm") +
+                logger.Info("  " + sig.OpenTime.ToString("dd-MMM HH:mm") +
                             " " + player.Name +
                             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " prDiffPerc " + prDiffPerc.Deci().Rnd().ToString().PadRight(11, ' ') +
@@ -905,7 +910,7 @@ namespace Trader.MVVM.View
             }
             if ((newPlayer.isSellAllowed == false || configr.IsSellingAllowed == false) && ForceSell == false)
             {
-                logger.Info("  " +sig.OpenTime.ToString("dd-MMM HH:mm") +
+                logger.Info("  " + sig.OpenTime.ToString("dd-MMM HH:mm") +
                             " " + player.Name +
                             " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                             " Selling not allowed "
@@ -916,7 +921,7 @@ namespace Trader.MVVM.View
                 await db.SaveChangesAsync();
                 return;
             }
-
+            //  if ((prDiffPerc < player.LastRoundProfitPerc && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true)
             if ((prDiffPerc < player.LastRoundProfitPerc && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true) // Scalp: (prDiffPerc < player.LastRoundProfitPerc ) || ForceSell == true)
             {
                 if (sig != null)
@@ -1311,9 +1316,9 @@ namespace Trader.MVVM.View
 
         private async Task GetMyCoins()
         {
-            using(var db =new DB())
+            using (var db = new DB())
             {
-                MyCoins = await db.MyCoins.AsNoTracking().Where(x=>x.IsIncludedForTrading==true).ToListAsync();
+                MyCoins = await db.MyCoins.AsNoTracking().Where(x => x.IsIncludedForTrading == true).ToListAsync();
             }
         }
 
@@ -1326,15 +1331,15 @@ namespace Trader.MVVM.View
 
             DB db = new DB();
             configr = await db.Config.FirstOrDefaultAsync();
-            
+
             await GetMyCoins();
-            
+
             TradeTime = DateTime.Now;
             StrTradeTime = TradeTime.ToString("dd-MMM HH:mm:ss");
             // NextTradeTime = TradeTime.AddMinutes(configr.IntervalMinutes).ToString("dd-MMM HH:mm:ss");
             NextTradeTime = TradeTime.AddSeconds(configr.IntervalMinutes).ToString("dd-MMM HH:mm:ss");
 
-            CheckSockets();
+            EnsureSocketRunning();
             CollectReferenceCandles();
             CreateBuyLowestSellHighestSignals();
             CreateScalpBuySignals();
@@ -1349,14 +1354,13 @@ namespace Trader.MVVM.View
             try
             {
 
-                logger.Info("Buying started for " + StrTradeTime);
                 await Buy();
                 logger.Info("Buying Completed for " + StrTradeTime);
 
             }
             catch (Exception ex)
             {
-                logger.Error("  Exception at buy " + ex.Message);
+                logger.Error("Exception at buy " + ex.Message);
             }
 
             logger.Info("");
@@ -1364,7 +1368,6 @@ namespace Trader.MVVM.View
 
             #region Sell
 
-            logger.Info("Selling Started for " + StrTradeTime);
 
             try
             {
@@ -1383,12 +1386,12 @@ namespace Trader.MVVM.View
             }
 
             logger.Info("Selling Completed for " + StrTradeTime);
-
+            logger.Info("");
             #endregion  Sell
 
             await SetGrid();
-            logger.Info("Next run at " + NextTradeTime);
-
+            //  logger.Info("Next run at " + NextTradeTime);
+            logger.Info("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
             isControlCurrentlyInTradeMethod = false;
 
         }
@@ -1402,7 +1405,7 @@ namespace Trader.MVVM.View
         private void btnTrade_Click(object sender, RoutedEventArgs e)
         {
             // await Trade();
-            CheckSockets();
+            EnsureSocketRunning();
             CollectReferenceCandles();
             CreateBuyLowestSellHighestSignals();
             CreateScalpBuySignals();
