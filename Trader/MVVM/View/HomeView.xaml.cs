@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
@@ -170,7 +171,7 @@ namespace Trader.MVVM.View
             logger.Info("");
         }
 
-        private void EnsureSocketRunning()
+        private void EnsureAllSocketsRunning()
         {
             Parallel.ForEach(MyCoins, coin =>
             {
@@ -221,14 +222,17 @@ namespace Trader.MVVM.View
                                 sig.PrDiffHighAndLowPerc = sig.DayHighPr.GetDiffPercBetnNewAndOld(sig.DayLowPr);
                                 sig.PrDiffCurrAndLowPerc = sig.CurrPr.GetDiffPercBetnNewAndOld(sig.DayLowPr);
                                 sig.PrDiffCurrAndHighPerc = sig.CurrPr.GetDiffPercBetnNewAndOld(sig.DayHighPr);
-                                sig.JustRecoveredFromDayLow = sig.PrDiffCurrAndLowPerc >= 1M && sig.PrDiffCurrAndLowPerc <= 2M;
-                                sig.IsAtDayLow = sig.PrDiffCurrAndLowPerc >= 0.5M && sig.PrDiffCurrAndLowPerc <= 1.5M;
-                                sig.PercBelowDayHighToBuy = coin.PercBelowDayHighToBuy;
-                                sig.PercAboveDayLowToSell = coin.PercAboveDayLowToSell;
+                                sig.JustRecoveredFromDayLow = sig.PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && sig.PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy;
+                                sig.IsAtDayLow = sig.PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && sig.PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy;
                                 // has gone to the bottom and gone up a bit. Then we know the lowest is reached
-                                sig.IsAtDayHigh = sig.PrDiffCurrAndHighPerc <= -0.5M && sig.PrDiffCurrAndHighPerc >= -1.5M;
-                                    // has gone to the top and gone down a little bit. Then we know the higest is reached
-                                    sig.IsDailyKlineSocketRunning = true;
+                                sig.IsAtDayHigh = sig.PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && sig.PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell;
+                                // has gone to the top and gone down a little bit. Then we know the higest is reached
+                                sig.IsDailyKlineSocketRunning = true;
+
+                                //                        public decimal DayLowGreaterthanTobuy { get; set; }
+                                //public decimal DayLowLessthanTobuy { get; set; }
+                                //public decimal DayHighLessthanToSell { get; set; }
+                                //public decimal DayHighGreaterthanToSell { get; set; }
                             });
 
                                 logger.Info("Kline  socket started for " + coin.Coin);
@@ -259,176 +263,200 @@ namespace Trader.MVVM.View
                 sig.IsSymbolTickerSocketRunning = false;
                 sig.IsDailyKlineSocketRunning = false;
                 sig.Symbol = coin.Coin;
-                sig.RefFiveMinCandles = new List<SignalCandle>();
+                sig.Ref5MinCandles = new List<SignalCandle>();
+                sig.Ref15MinCandles = new List<SignalCandle>();
+                sig.Ref30MinCandles = new List<SignalCandle>();
                 sig.RefHourCandles = new List<SignalCandle>();
-                sig.PercBelowDayHighToBuy = coin.PercBelowDayHighToBuy;
-                sig.PercAboveDayLowToSell = coin.PercAboveDayLowToSell;
+                sig.RefDayCandles = new List<SignalCandle>();
                 CurrentSignals.Add(sig);
             }
 
-            EnsureSocketRunning();
+            EnsureAllSocketsRunning();
 
             logger.Info("Get signals completed");
             logger.Info("");
         }
 
-        private void CollectReferenceCandles()
+        private void ResetSignalsWithSelectedValues()
         {
-            foreach (var sig in CurrentSignals)
+            foreach (var coin in MyCoins)
             {
-                using (var db = new DB())
+                Signal sig = CurrentSignals.Where(x => x.Symbol == coin.Coin).FirstOrDefault();
+                if (sig != null)
                 {
-                    List<SignalCandle> signalCandles = db.SignalCandle.Where(x => x.Pair == sig.Symbol).ToList();
-                    if (sig.RefFiveMinCandles.Count < 6)
-                    {
-                        foreach (var refcndl in signalCandles)
-                        {
-                            sig.RefFiveMinCandles.Add(refcndl);
-                        }
-                    }
+                    sig.IsIgnored = false;
+                    sig.IsPicked = false;
+                    sig.CoinId = coin.Id;
+                    sig.PercBelowDayHighToBuy = coin.PercBelowDayHighToBuy;
+                    sig.PercAboveDayLowToSell = coin.PercAboveDayLowToSell;
                 }
-
-                if (DateTime.Now.Minute % 5 == 0) //[PROD] Collect 5 minute Candles DateTime.Now.Minute % 5 == 0
-                {
-                    var currentDate = DateTime.Now;
-                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
-
-                    if (sig.RefFiveMinCandles.Any(x => x.CloseTime == time)) sig.RefFiveMinCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
-
-                    else
-                    {
-                        int lastid = 1;
-                        if (sig.RefFiveMinCandles.Any()) lastid = sig.RefFiveMinCandles.Max(x => x.Id) + 1;
-                        sig.RefFiveMinCandles.Add(new SignalCandle { SeqNo = lastid, Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr });
-                        if (sig.RefFiveMinCandles.Count > 12)
-                        {
-                            sig.RefFiveMinCandles.RemoveAt(0);
-                        }
-                        using (var db = new DB())
-                        {
-                            db.Database.ExecuteSqlRaw("delete from SignalCandle where Pair='" + sig.Symbol + "'");
-                            foreach (SignalCandle cndl in sig.RefFiveMinCandles)
-                            {
-                                cndl.Id = 0;
-                                db.SignalCandle.Add(cndl);
-                            }
-                            db.SaveChanges();
-                        }
-
-                    }
-                }
-
-                if (DateTime.Now.Minute == 1) // Collect 1 hour candles
-                {
-                    var currentDate = DateTime.Now;
-                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, 0, 0);
-
-                    if (sig.RefHourCandles.Any(x => x.CloseTime == time)) sig.RefHourCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
-                    else
-                    {
-                        int nextid = 1;
-                        if (sig.RefHourCandles.Any()) nextid = sig.RefHourCandles.Max(x => x.Id) + 1;
-                        sig.RefHourCandles.Add(new SignalCandle { SeqNo = nextid, Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr });
-                        if (sig.RefHourCandles.Count > 12) sig.RefHourCandles.RemoveAt(0);
-                    }
-                }
-
-                List<SignalCandle> fivemincandles = sig.RefFiveMinCandles;
-
-                if (fivemincandles.Count <= 6)
-                {
-                    sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. Wait till 30 minutes to see how market is going before buying
-                }
-                else
-                {
-                    var mintime = fivemincandles.Min(x => x.CloseTime);
-                    sig.PriceChangeInLastHour = sig.CurrPr.GetDiffPercBetnNewAndOld(fivemincandles.Where(x => x.CloseTime == mintime).First().ClosePrice);
-
-                    sig.TotalPreviousDowns = 0;
-                    sig.TotalPreviousUps = 0;
-
-                    fivemincandles = sig.RefFiveMinCandles.OrderByDescending(x => x.CloseTime).Take(6).ToList();
-
-                    for (int i = 0; i < fivemincandles.Count - 1; i++)
-                    {
-                        if (fivemincandles[i].ClosePrice <= fivemincandles[i + 1].ClosePrice)
-                        {
-                            sig.TotalPreviousDowns++;
-                        }
-                        else
-                        {
-                            sig.TotalPreviousUps++;
-                        }
-                    }
-
-                    if (
-                        fivemincandles[0].ClosePrice <= fivemincandles[1].ClosePrice &&
-                        fivemincandles[1].ClosePrice <= fivemincandles[2].ClosePrice &&
-                        fivemincandles[2].ClosePrice <= fivemincandles[3].ClosePrice
-                        )
-                    {
-                        sig.isLastThreeFiveMinsGoingDown = true;
-                    }
-                    else
-                    {
-                        sig.isLastThreeFiveMinsGoingDown = false;
-                    }
-
-                    if (
-                        fivemincandles[0].ClosePrice <= fivemincandles[1].ClosePrice &&
-                        fivemincandles[1].ClosePrice <= fivemincandles[2].ClosePrice
-
-                        )
-                    {
-                        sig.isLastTwoFiveMinsGoingDown = true;
-                    }
-                    else
-                    {
-                        sig.isLastTwoFiveMinsGoingDown = false;
-                    }
-
-                    if (
-                        fivemincandles[0].ClosePrice >= fivemincandles[1].ClosePrice &&
-                        fivemincandles[1].ClosePrice >= fivemincandles[2].ClosePrice &&
-                        fivemincandles[2].ClosePrice >= fivemincandles[3].ClosePrice
-                        )
-                    {
-                        sig.isLastThreeFiveMinsGoingUp = true;
-                    }
-                    else
-                    {
-                        sig.isLastThreeFiveMinsGoingUp = false;
-                    }
-
-
-                }
-
             }
+
 
         }
 
+
+        // will have 7 candles. Last week
+        // will have 24 candles. Last 24 hours
+        // will have 24 candles. Last 2 hours
+        // will have 24 candles. Last 6 hours
+        // will have 24 candles. Last 12 hours
+
+
+        private int GetTotalConsecutiveUpOrDown(List<SignalCandle> candleList, string direction)
+        {
+            var mintime = candleList.Min(x => x.CloseTime);
+            var avgPriceOfCandles = candleList.Average(x => x.ClosePrice);
+
+            int TotalConsecutiveChanges = 0;
+
+            candleList = candleList.OrderByDescending(x => x.CloseTime).ToList();
+
+            var firstpriceOfCandles = candleList.Last().ClosePrice;
+            bool directionCondition = false;
+
+            for (int i = 0; i < candleList.Count - 1; i++)
+            {
+                if (direction == "up")
+                {
+                    directionCondition = candleList[i].ClosePrice < candleList[i + 1].ClosePrice || candleList[i].ClosePrice < avgPriceOfCandles * 99 / 100;
+                }
+                else
+                {
+                    directionCondition = candleList[i].ClosePrice > candleList[i + 1].ClosePrice || candleList[i].ClosePrice > avgPriceOfCandles * 99 / 100;
+                }
+                if (directionCondition)
+                {
+
+                    TotalConsecutiveChanges++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return TotalConsecutiveChanges;
+        }
+
+        private List<SignalCandle> FillSignalCandles(Signal sig, List<SignalCandle> candleList, string candleType, int count, int minute, int hour)
+        {
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            DateTime time = DateTime.Now;
+            var currentDate = DateTime.Now;
+
+            using (var db = new DB())
+            {
+                signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == candleType).ToList();
+
+                if (candleList.Count < count)
+                {
+                    foreach (var refcndl in signalCandles)
+                    {
+                        candleList.Add(refcndl);
+                    }
+                }
+
+                bool istimetoCollectCandle = false;
+                if (hour > 0 && DateTime.Now.Hour % hour == 0 && DateTime.Now.Minute % minute == 0) // hour is 23
+                {
+                    time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, hour, minute, 0);
+                    istimetoCollectCandle = true;
+                }
+                else if (DateTime.Now.Minute % minute == 0)
+                {
+                    time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
+                    istimetoCollectCandle = true;
+                }
+                if (istimetoCollectCandle)
+                {
+                    if (candleList.Any(x => x.CloseTime == time))
+                    {
+                        candleList.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        candleList.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = candleType });
+
+                        if (candleList.Count > count)
+                        {
+                            candleList.RemoveAt(0);
+                        }
+
+                        db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='" + candleType + "' and Pair='" + sig.Symbol + "'");
+
+                        foreach (SignalCandle cndl in candleList)
+                        {
+                            cndl.Id = 0;
+                            db.SignalCandle.Add(cndl);
+                        }
+                        db.SaveChanges();
+                    }
+
+                }
+
+
+
+
+
+            }
+
+            return candleList;
+        }
+
+        private decimal GetPriceChangeBetweenCurrentAndReferenceStart(decimal currentPrice, List<SignalCandle> candleList)
+        {
+            if (candleList == null || candleList.Count == 0)
+                return 0M;
+            candleList = candleList.OrderBy(x => x.CloseTime).ToList();
+            var firstpriceOfCandles = candleList.First().ClosePrice;
+            return currentPrice.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+        }
+
+        private void CollectReferenceCandles()
+        {
+            for (int i = 0; i < CurrentSignals.Count; i++)
+            {
+                CurrentSignals[i].Ref5MinCandles = FillSignalCandles(CurrentSignals[i], CurrentSignals[i].Ref5MinCandles, "5min", 24, 5, 0);
+                CurrentSignals[i].TotalConsecutive5MinDowns = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref5MinCandles, "down");
+                CurrentSignals[i].TotalConsecutive5MinUps = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref5MinCandles, "up");
+                CurrentSignals[i].IsBestTimeToScalpBuy = CurrentSignals[i].Ref5MinCandles.Count >= 24;
+                CurrentSignals[i].PrChPercCurrAndRef5min = GetPriceChangeBetweenCurrentAndReferenceStart(CurrentSignals[i].CurrPr, CurrentSignals[i].Ref5MinCandles);
+
+                CurrentSignals[i].Ref15MinCandles = FillSignalCandles(CurrentSignals[i], CurrentSignals[i].Ref15MinCandles, "15min", 24, 15, 0);
+                CurrentSignals[i].TotalConsecutive15MinDowns = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref15MinCandles, "down");
+                CurrentSignals[i].TotalConsecutive15MinUps = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref15MinCandles, "up");
+                CurrentSignals[i].IsBestTimeToScalpBuy = CurrentSignals[i].Ref15MinCandles.Count >= 24;
+                CurrentSignals[i].PrChPercCurrAndRef15min = GetPriceChangeBetweenCurrentAndReferenceStart(CurrentSignals[i].CurrPr, CurrentSignals[i].Ref15MinCandles);
+
+                CurrentSignals[i].Ref30MinCandles = FillSignalCandles(CurrentSignals[i], CurrentSignals[i].Ref30MinCandles, "30min", 24, 30, 0);
+                CurrentSignals[i].TotalConsecutive30MinDowns = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref30MinCandles, "down");
+                CurrentSignals[i].TotalConsecutive30MinUps = GetTotalConsecutiveUpOrDown(CurrentSignals[i].Ref30MinCandles, "up");
+                CurrentSignals[i].IsBestTimeToScalpBuy = CurrentSignals[i].Ref30MinCandles.Count >= 24;
+                CurrentSignals[i].PrChPercCurrAndRef30min = GetPriceChangeBetweenCurrentAndReferenceStart(CurrentSignals[i].CurrPr, CurrentSignals[i].Ref30MinCandles);
+
+                CurrentSignals[i].RefHourCandles = FillSignalCandles(CurrentSignals[i], CurrentSignals[i].RefHourCandles, "hour", 24, 59, 0);
+                CurrentSignals[i].TotalConsecutiveHourDowns = GetTotalConsecutiveUpOrDown(CurrentSignals[i].RefHourCandles, "down");
+                CurrentSignals[i].TotalConsecutiveHourUps = GetTotalConsecutiveUpOrDown(CurrentSignals[i].RefHourCandles, "up");
+                CurrentSignals[i].IsBestTimeToScalpBuy = CurrentSignals[i].RefHourCandles.Count >= 24;
+                CurrentSignals[i].PrChPercCurrAndRefHr = GetPriceChangeBetweenCurrentAndReferenceStart(CurrentSignals[i].CurrPr, CurrentSignals[i].RefHourCandles);
+
+                CurrentSignals[i].RefDayCandles = FillSignalCandles(CurrentSignals[i], CurrentSignals[i].RefDayCandles, "day", 7, 59, 23);
+                CurrentSignals[i].TotalConsecutiveDayDowns = GetTotalConsecutiveUpOrDown(CurrentSignals[i].RefDayCandles, "down");
+                CurrentSignals[i].TotalConsecutiveDayUps = GetTotalConsecutiveUpOrDown(CurrentSignals[i].RefDayCandles, "up");
+                CurrentSignals[i].IsBestTimeToScalpBuy = CurrentSignals[i].RefDayCandles.Count >= 7;
+                CurrentSignals[i].PrChPercCurrAndRefDay = GetPriceChangeBetweenCurrentAndReferenceStart(CurrentSignals[i].CurrPr, CurrentSignals[i].RefDayCandles);
+            }
+        }
+
+    
         private void CreateBuyLowestSellHighestSignals()
         {
-
-            //[QA]
-            //foreach (var sig in CurrentSignals)
-            //{
-            //    sig.IsBestTimeToBuyAtDayLowest = sig.CurrPr > 0 && sig.PrDiffCurrAndHighPerc < -8M && sig.JustRecoveredFromDayLow;
-            //    sig.IsBestTimeToSellAtDayHighest = sig.CurrPr > 0 && sig.PrDiffHighAndLowPerc > 8M && sig.IsAtDayHigh;
-            //}
-
-            //[PROD]
             foreach (var sig in CurrentSignals)
             {
-                //To buy at lowest
-                //1. There should be at least 6% difference between high and low
-                //2. Current price should be at least 6% lower than the high price
-                //3. High Percentage should be atleast 6% bigger than low percentage
                 sig.IsBestTimeToBuyAtDayLowest = sig.CurrPr > 0 && sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.IsAtDayLow;
 
-                //To sell at highest
-
-                //1. There should be at least 6% difference between high and low
                 sig.IsBestTimeToSellAtDayHighest = sig.CurrPr > 0 && sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell && sig.IsAtDayHigh;
             }
         }
@@ -455,25 +483,25 @@ namespace Trader.MVVM.View
                     continue;
                 }
 
-                if (sig.PriceChangeInLastHour > -2M)
+                if (sig.PrChPercCurrAndRef5min > -1.2M)
                 {
                     sig.IsBestTimeToScalpBuy = false;
                     continue;
                 }
 
-                if (sig.PrDiffCurrAndHighPerc >= -3M)
+                if (sig.PrDiffCurrAndHighPerc >= -2M)
                 {
                     sig.IsBestTimeToScalpBuy = false;
                     continue;
                 }
 
-                if (sig.PrDiffHighAndLowPerc <= 3M)
+                if (sig.PrDiffHighAndLowPerc <= 1M)
                 {
                     sig.IsBestTimeToScalpBuy = false;
                     continue;
                 }
 
-                if (!sig.isLastTwoFiveMinsGoingDown)
+                if (!sig.isLastThreeFiveMinsGoingDown)
                 {
                     sig.IsBestTimeToScalpBuy = false;
                     continue;
@@ -493,125 +521,163 @@ namespace Trader.MVVM.View
                 //4. Last 3 candles are down and price went down less than -1.2M
                 //5. Current price should be at least 3% lower than the highest price of the day
                 //6. High percent should be atleast 3% higher than low percent
-                if ((sig.CurrPr <= (sig.DayHighPr + sig.DayAveragePr) / configr.DivideHighAndAverageBy) || sig.IsCloseToDayLow)
+                if (sig.CurrPr <= ((sig.DayHighPr + sig.DayAveragePr) / configr.DivideHighAndAverageBy))
                     sig.IsBestTimeToScalpBuy = true;
                 else
                     sig.IsBestTimeToScalpBuy = false;
             }
         }
 
-        private void LogDecisions()
+        private void LogInfo()
         {
-            logger.Info("");
-
-
-            logger.Info("");
-            logger.Info("Buyables");
-            logger.Info("--------");
-
-            foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
+            if (configr.ShowBuyLogs)
             {
-                string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-                                 " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " Dihi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " hi+avg/2.1 : " + ((sig.DayHighPr + sig.DayAveragePr) / configr.DivideHighAndAverageBy).Rnd(5).ToString().PadRight(11, ' ') +
-                                 " ClsToLow : " + sig.IsCloseToDayLow.ToString().PadRight(8, ' ') +
-                                 " PrCh " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(8, ' ');
+                logger.Info("");
+                logger.Info("Buyables");
+                logger.Info("--------");
 
-                if (sig.IsBestTimeToBuyAtDayLowest)
-                    log += " Day Buy : Yes ";
-                //if (sig.IsBestTimeToScalpBuy)
-                //    log += " Scalp Buy : Yes ";
-                if (sig.IsBestTimeToBuyAtDayLowest) //|| sig.IsBestTimeToScalpBuy
-                    logger.Info(log);
-            }
-
-            logger.Info("");
-            logger.Info("Not Buyables");
-            logger.Info("--------");
-            foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndLowPerc))
-            {
-                string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-                               " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-                               " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-                               " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-                               " DiCr&LwPrc " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                               " PrDiCr&LwPrc " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') + " > 0.5 & < 1.5 ? : " + (sig.PrDiffCurrAndLowPerc >= 0.5M && sig.PrDiffCurrAndLowPerc <= 1.5M).ToString().PadRight(6, ' ') +
-                               " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(9, ' ') + " < "+sig.PercBelowDayHighToBuy.Rnd(0)+" ? : " + (sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy).ToString().PadRight(6, ' ') +
-                               " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(9, ' ') + " > "+sig.PercAboveDayLowToSell.Rnd(0) +" ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString();
-                if (!sig.IsBestTimeToBuyAtDayLowest)
-                    logger.Info(log);
-            }
-            //logger.Info("");
-            //logger.Info("Scalp Buyables");
-
-            //logger.Info("");
-            //foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
-            //{
-            //    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-            //                     " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " Dihi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " hi+avg/2.1 : " + ((sig.DayHighPr + sig.DayAveragePr) / 2.1M).Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " ClsToLow : " + sig.IsCloseToDayLow.ToString().PadRight(8, ' ') +
-            //                     " PrCh " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(8, ' ');
-            //    if (sig.IsBestTimeToScalpBuy)
-            //        logger.Info(log + " Scalp Buy : Yes ");
-            //}
-
-            //logger.Info("");
-            //logger.Info("Not Scalp Buyables");
-            //logger.Info("");
-            //foreach (var sig in CurrentSignals)
-            //{
-            //    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-            //                     " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " Dihi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " hi+avg/2.1 : " + ((sig.DayHighPr + sig.DayAveragePr) / 2.1M).Rnd(5).ToString().PadRight(11, ' ') +
-            //                     " ClsToLow : " + sig.IsCloseToDayLow.ToString().PadRight(8, ' ') +
-            //                     " 2downs : " + sig.isLastTwoFiveMinsGoingDown.ToString().PadRight(6, ' ') +
-            //                     " PrCh " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(8, ' ');
-
-            //    if (!sig.IsBestTimeToScalpBuy)
-            //        logger.Info(log + " Scalp Buy : No ");
-            //}
-
-
-
-            logger.Info("");
-            logger.Info("Sellables");
-            logger.Info("---------");
-
-            foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
-            {
-                string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
-                                 " DHi " + sig.DayHighPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DLo " + sig.DayLowPr.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " Dihi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(5).ToString().PadRight(11, ' ') +
-                                 " hi+avg/2.1 : " + ((sig.DayHighPr + sig.DayAveragePr) / configr.DivideHighAndAverageBy).Rnd(5).ToString().PadRight(11, ' ') +
-                                 " ClsToLow : " + sig.IsCloseToDayLow.ToString().PadRight(8, ' ') +
-                                 " PrCh " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(8, ' ');
-
-                if (sig.IsBestTimeToSellAtDayHighest)
+                foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
                 {
-                    logger.Info(log + " Day Sell: Yes");
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
+                      " Id " + sig.CoinId.ToString().PadRight(3, ' ') +
+                       " Pr " + sig.CurrPr.Rnd(4).ToString().PadRight(11, ' ') +
+                       " Lo " + sig.DayLowPr.Rnd(4).ToString().PadRight(11, ' ') +
+                       " Hi " + sig.DayHighPr.Rnd(4).ToString().PadRight(11, ' ') +
+                       " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(3).ToString().PadRight(8, ' ') + " > " + configr.DayLowGreaterthanTobuy.Rnd(1) + " & < " + configr.DayLowLessthanTobuy + " ? : " + (sig.PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && sig.PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy).ToString().PadRight(6, ' ') +
+                                 " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(2).ToString().PadRight(6, ' ') + " < " + sig.PercBelowDayHighToBuy.Rnd(0).ToString().PadRight(3, ' ') + " ? : " + (sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy).ToString().PadRight(6, ' ') +
+                                 " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(2).ToString().PadRight(6, ' ') + " > " + sig.PercAboveDayLowToSell.Rnd(0) + " ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString();
+
+                    if (sig.IsBestTimeToBuyAtDayLowest)
+                        logger.Info(log);
                 }
             }
-            logger.Info("");
+
+            if (configr.ShowNoBuyLogs)
+            {
+                logger.Info("");
+                logger.Info("Not Buyables");
+                logger.Info("------------");
+                foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndLowPerc))
+                {
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
+                           " Id " + sig.CoinId.ToString().PadRight(3, ' ') +
+                            " Pr " + sig.CurrPr.Rnd(4).ToString().PadRight(11, ' ') +
+                            " Lo " + sig.DayLowPr.Rnd(4).ToString().PadRight(11, ' ') +
+                            " Hi " + sig.DayHighPr.Rnd(4).ToString().PadRight(11, ' ') +
+                            " DiCr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(3).ToString().PadRight(8, ' ') + " > " + configr.DayLowGreaterthanTobuy.Rnd(1) + " & < " + configr.DayLowGreaterthanTobuy + " ? : " + (sig.PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && sig.PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy).ToString().PadRight(6, ' ') +
+                                      " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(2).ToString().PadRight(6, ' ') + " < " + sig.PercBelowDayHighToBuy.Rnd(0).ToString().PadRight(3, ' ') + " ? : " + (sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy).ToString().PadRight(6, ' ') +
+                                      " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(2).ToString().PadRight(6, ' ') + " > " + sig.PercAboveDayLowToSell.Rnd(0) + " ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString();
+
+                    if (!sig.IsBestTimeToBuyAtDayLowest)
+                        logger.Info(log);
+                }
+            }
+            if (configr.ShowScalpBuyLogs)
+            {
+                logger.Info("");
+                logger.Info("Scalp Downs and Ups");
+
+                logger.Info("----------------");
+                foreach (var sig in CurrentSignals.OrderByDescending(x => x.TotalConsecutive5MinDowns))
+                {
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(8, ' ') +
+                                   " 5dn " + sig.TotalConsecutive5MinDowns.ToString().PadRight(3, ' ') +
+                                   " 5up " + sig.TotalConsecutive5MinUps.ToString().PadRight(3, ' ') +
+                                   " Ch " + sig.PrChPercCurrAndRef5min.Rnd(3).ToString().PadRight(12, ' ') +
+                                   " 15dn " + sig.TotalConsecutive15MinDowns.ToString().PadRight(3, ' ') +
+                                   " 15up " + sig.TotalConsecutive15MinUps.ToString().PadRight(3, ' ') +
+                                   " Ch " + sig.PrChPercCurrAndRef15min.Rnd(3).ToString().PadRight(12, ' ') +
+                                   " 30dn " + sig.TotalConsecutive30MinDowns.ToString().PadRight(3, ' ') +
+                                   " 30up " + sig.TotalConsecutive30MinUps.ToString().PadRight(3, ' ') +
+                                   " Ch " + sig.PrChPercCurrAndRef30min.Rnd(3).ToString().PadRight(12, ' ') +
+                                   " Hrdn " + sig.TotalConsecutiveHourDowns.ToString().PadRight(3, ' ') +
+                                   " Hrup " + sig.TotalConsecutiveHourUps.ToString().PadRight(3, ' ') +
+                                   " Ch " + sig.PrChPercCurrAndRefHr.Rnd(3).ToString().PadRight(12, ' ') +
+                                   " Ddn " + sig.TotalConsecutiveDayDowns.ToString().PadRight(3, ' ') +
+                                   " Dup " + sig.TotalConsecutiveDayUps.ToString().PadRight(3, ' ') +
+                                   " Ch " + sig.PrChPercCurrAndRefDay.Rnd(3).ToString();
+
+                    //  if (sig.IsBestTimeToScalpBuy)
+                    logger.Info(log);
+                }
+            }
+            if (configr.ShowNoScalpBuyLogs)
+            {
+                logger.Info("");
+                logger.Info("Not Scalp Buyables");
+                logger.Info("----------------");
+                foreach (var sig in CurrentSignals)
+                {
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(8, ' ') +
+                                         " 5dn " + sig.TotalConsecutive5MinDowns.ToString().PadRight(3, ' ') +
+                                         " 5up " + sig.TotalConsecutive5MinUps.ToString().PadRight(3, ' ') +
+                                         " Ch " + sig.PrChPercCurrAndRef5min.Rnd(3).ToString().PadRight(12, ' ') +
+                                         " 15dn " + sig.TotalConsecutive15MinDowns.ToString().PadRight(3, ' ') +
+                                         " 15up " + sig.TotalConsecutive15MinUps.ToString().PadRight(3, ' ') +
+                                         " Ch " + sig.PrChPercCurrAndRef15min.Rnd(3).ToString().PadRight(12, ' ') +
+                                         " 30dn " + sig.TotalConsecutive30MinDowns.ToString().PadRight(3, ' ') +
+                                         " 30up " + sig.TotalConsecutive30MinUps.ToString().PadRight(3, ' ') +
+                                         " Ch " + sig.PrChPercCurrAndRef30min.Rnd(3).ToString().PadRight(12, ' ') +
+                                         " Hrdn " + sig.TotalConsecutiveHourDowns.ToString().PadRight(3, ' ') +
+                                         " Hrup " + sig.TotalConsecutiveHourUps.ToString().PadRight(3, ' ') +
+                                         " Ch " + sig.PrChPercCurrAndRefHr.Rnd(3).ToString().PadRight(12, ' ') +
+                                         " Ddn " + sig.TotalConsecutiveDayDowns.ToString().PadRight(3, ' ') +
+                                         " Dup " + sig.TotalConsecutiveDayUps.ToString().PadRight(3, ' ') +
+                                         " Ch " + sig.PrChPercCurrAndRefDay.Rnd(3).ToString();
+                    if (!sig.IsBestTimeToScalpBuy)
+                        logger.Info(log);
+                }
+            }
+
+            if (configr.ShowSellLogs)
+            {
+                logger.Info("");
+                logger.Info("Sellables");
+                logger.Info("---------");
+
+         
+                foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
+                {
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
+                                 " Id " + sig.CoinId.ToString().PadRight(3, ' ') +
+                                 " Pr " + sig.CurrPr.Rnd(4).ToString().PadRight(11, ' ') +
+                                  " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(3).ToString().PadRight(8, ' ') + " <= " + 
+                                  configr.DayHighLessthanToSell.Rnd(1) + " & >= " + configr.DayHighGreaterthanToSell + " ? : " + 
+                                  (sig.PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && sig.PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell).ToString().PadRight(6, ' ') +
+                                  " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(2).ToString().PadRight(6, ' ') + " > " + sig.PercAboveDayLowToSell.Rnd(0) + " ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString().PadRight(6, ' ') +
+                                   " At DHi? " + (sig.PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && sig.PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell).ToString().PadRight(6, ' ') ;
+
+                    if (sig.IsBestTimeToSellAtDayHighest)
+                    {
+                        logger.Info(log + " Day Sell: Yes");
+                    }
+                }
+            }
+
+            if (configr.ShowNoSellLogs)
+            {
+                logger.Info("");
+                logger.Info("Not Sellables");
+                logger.Info("------------");
+
+                foreach (var sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc))
+                {
+                    string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(6, ' ') +
+                                  " Id " + sig.CoinId.ToString().PadRight(3, ' ') +
+                                  " Pr " + sig.CurrPr.Rnd(4).ToString().PadRight(11, ' ') +
+                                  " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(3).ToString().PadRight(8, ' ') + " <= " +
+                                   configr.DayHighLessthanToSell.Rnd(1) + " & >= " + configr.DayHighGreaterthanToSell + " ? : " +
+                                   (sig.PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && sig.PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell).ToString().PadRight(6, ' ') +
+                                   " DiHi&Lw " + sig.PrDiffHighAndLowPerc.Rnd(2).ToString().PadRight(6, ' ') + " > " + sig.PercAboveDayLowToSell.Rnd(0) + " ? : " + (sig.PrDiffHighAndLowPerc > sig.PercAboveDayLowToSell).ToString().PadRight(6, ' ') +
+                                    " At DHi? " + (sig.PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && sig.PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell).ToString().PadRight(6, ' ');
+
+                    if (!sig.IsBestTimeToSellAtDayHighest)
+                    {
+                        logger.Info(log + " Day Sell: No");
+                    }
+                }
+                logger.Info("");
+            }
 
             //logger.Info("Coins who gave exception while Creating (but probably are running without issue)");
             //logger.Info("");
@@ -744,15 +810,20 @@ namespace Trader.MVVM.View
                 }
                 if (player.AvailableAmountToBuy < configr.MinimumAmountToTradeWith)
                 {
-                    //logger.Info("  " + StrTradeTime + " " + player.Name + " Avl Amt " + player.AvailableAmountToBuy + " Not enough for buying ");
+                    if (configr.ShowBuyingFlowLogs)
+                        logger.Info("  " + StrTradeTime + " " + player.Name + " Avl Amt " + player.AvailableAmountToBuy + " Not enough for buying ");
                     continue;
                 }
                 if (player.isBuyAllowed == false)
                 {
+                    if (configr.ShowBuyingFlowLogs)
+                        logger.Info("  " + StrTradeTime + " " + player.Name + "  Not  Allowed for buying");
                     continue;
                 }
                 if (configr.IsBuyingAllowed == false)
                 {
+                    if (configr.ShowBuyingFlowLogs)
+                        logger.Info("  " + StrTradeTime + " " + player.Name + "  overall system not  Allowed for buying");
                     continue;
                 }
                 foreach (Signal sig in CurrentSignals.OrderBy(x => x.PrDiffCurrAndHighPerc).ToList())
@@ -768,11 +839,25 @@ namespace Trader.MVVM.View
                         sig.IsPicked = true;
                         continue;
                     }
+                    else
+                    {
+                        sig.IsPicked = false;
+                    }
 
                     if (sig.isLastTwoFiveMinsGoingDown) // prices are going down continuously. Dont buy till you see recovery
                     {
-                        sig.IsIgnored = true;
+                        if (configr.ShowBuyingFlowLogs)
+
+
+                            //  logger.Info(sig.OpenTime.ToString("dd-MMM HH:mm") +
+                            //" " + player.Name +
+                            //" " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') + " CrPr " + sig.CurrPr.Rnd(3) + "  Prices are going down. Dont buy ");
+                            sig.IsIgnored = true;
                         continue;
+                    }
+                    else
+                    {
+                        sig.IsIgnored = false;
                     }
 
                     if (sig.IsBestTimeToBuyAtDayLowest) // (sig.IsBestTimeToScalpBuy)
@@ -800,7 +885,6 @@ namespace Trader.MVVM.View
 
         private async Task Sell(Player player)
         {
-
             Signal sig = CurrentSignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
             if (sig == null) return;
 
@@ -881,7 +965,10 @@ namespace Trader.MVVM.View
 
             if (prDiffPerc >= player.SellBelowPerc && ForceSell == false)
             {
-                player.SellBelowPerc = NextSellbelow;
+                if (prDiffPerc > player.LastRoundProfitPerc && NextSellbelow > player.SellBelowPerc)
+                {
+                    player.SellBelowPerc = NextSellbelow;
+                }
                 player.LastRoundProfitPerc = prDiffPerc;
                 player.AvailableAmountToBuy = 0;
                 db.Player.Update(player);
@@ -922,7 +1009,7 @@ namespace Trader.MVVM.View
                 return;
             }
             //  if ((prDiffPerc < player.LastRoundProfitPerc && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true)
-            if ((prDiffPerc < player.LastRoundProfitPerc && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true) // Scalp: (prDiffPerc < player.LastRoundProfitPerc ) || ForceSell == true)
+            if (((prDiffPerc < player.LastRoundProfitPerc) && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true) // Scalp: (prDiffPerc < player.LastRoundProfitPerc ) || ForceSell == true)
             {
                 if (sig != null)
                 {
@@ -970,7 +1057,7 @@ namespace Trader.MVVM.View
             }
             else
             {
-                // LogNoSellReason(player, PriceChangeResponse, pair, mysellPrice, prDiffPerc);
+                LogNoSellReason(player, sig, mysellPrice, prDiffPerc);
                 player.AvailableAmountToBuy = 0;
                 player.LastRoundProfitPerc = prDiffPerc;
                 db.Player.Update(player);
@@ -1078,7 +1165,7 @@ namespace Trader.MVVM.View
                             //dont cancel.Wait indefinitely till filled
                         }
 
-                        if (orderResponse.Status != OrderStatus.Filled)
+                        else if (orderResponse.Status != OrderStatus.Filled)
                         {
                             if (player.RepsTillCancelOrder > configr.MaxRepsBeforeCancelOrder)
                             {
@@ -1339,21 +1426,30 @@ namespace Trader.MVVM.View
             // NextTradeTime = TradeTime.AddMinutes(configr.IntervalMinutes).ToString("dd-MMM HH:mm:ss");
             NextTradeTime = TradeTime.AddSeconds(configr.IntervalMinutes).ToString("dd-MMM HH:mm:ss");
 
-            EnsureSocketRunning();
+            EnsureAllSocketsRunning();
+            ResetSignalsWithSelectedValues();
+
             CollectReferenceCandles();
+
+            //CollectFiveMinReferenceCandles();
+            //CollectFifteenMinReferenceCandles();
+            //CollectThirtyMinReferenceCandles();
+            //CollectHourlyReferenceCandles();
+            //CollectDayReferenceCandles();
+
             CreateBuyLowestSellHighestSignals();
             CreateScalpBuySignals();
-            LogDecisions();
-
+            LogInfo();
             await UpdateTradeBuyDetails();
             await UpdateTradeSellDetails();
-            Thread.Sleep(400);
+            Thread.Sleep(200);
 
             #region Buy
 
             try
             {
-
+                logger.Info("");
+                logger.Info("Buying Started for " + StrTradeTime);
                 await Buy();
                 logger.Info("Buying Completed for " + StrTradeTime);
 
@@ -1367,8 +1463,8 @@ namespace Trader.MVVM.View
             #endregion Buys
 
             #region Sell
-
-
+            logger.Info("");
+            logger.Info("Selling Started for " + StrTradeTime);
             try
             {
                 Thread.Sleep(400);
@@ -1396,20 +1492,17 @@ namespace Trader.MVVM.View
 
         }
 
-        private async void TraderTimer_Tick(object sender, EventArgs e)
+        private void TraderTimer_Tick(object sender, EventArgs e)
         {
-            await Trade();
+            var t = Task.Run(async() => await Trade());
+            t.Wait();
 
         }
 
         private void btnTrade_Click(object sender, RoutedEventArgs e)
         {
-            // await Trade();
-            EnsureSocketRunning();
-            CollectReferenceCandles();
-            CreateBuyLowestSellHighestSignals();
-            CreateScalpBuySignals();
-            LogDecisions();
+            var t = Task.Run(async () => await Trade());
+            t.Wait();
         }
 
         #region low priority methods
@@ -1455,16 +1548,6 @@ namespace Trader.MVVM.View
                 if (balance.Free > 0)
                     logger.Info(balance.Asset + "," + balance.Free);
             }
-        }
-
-        private async Task RemoveOldCandles()
-        {
-
-            using (var db = new DB())
-            {
-                await db.Database.ExecuteSqlRawAsync("delete from Candle where CAST(RecordedTime AS DATE)  <= GETDATE()-1");
-            }
-
         }
 
         public async Task GetAllUSDTPairs()
@@ -1612,14 +1695,19 @@ namespace Trader.MVVM.View
 
         public void LogNoBuy(Player player, Signal sig)
         {
-            //logger.Info("  " +
-            //            sig.CandleOpenTime.ToString("dd-MMM HH:mm") +
-            //          " " + player.Name +
-            //         " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
-            //           " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(11, ' ') +
-            //           " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(11, ' ') +
-            //          " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(11, ' ') +
-            //          " Not Close to day low than high. Dont buy ");
+            //if (configr.ShowDetailedBuyingFlowLogs)
+            //{
+            //    logger.Info("  " +
+            //                sig.OpenTime.ToString("dd-MMM HH:mm") +
+            //              " " + player.Name +
+            //              " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+            //               " DHi   " + sig.DayHighPr.Rnd().ToString().PadRight(11, ' ') +
+            //               " DLo   " + sig.DayLowPr.Rnd().ToString().PadRight(11, ' ') +
+            //              " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(11, ' ') +
+            //               " IsDayLow " + sig.IsAtDayLow.ToString().PadRight(11, ' ') +
+            //              " IsBestTimeToBuy " + sig.IsBestTimeToBuyAtDayLowest.ToString().PadRight(11, ' ') +
+            //              " Not best time to buy ");
+            //}
         }
 
         public void LogBuy(Player player, Signal sig)
@@ -1651,7 +1739,7 @@ namespace Trader.MVVM.View
                    " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
                    " CurCnPr " + sig.CurrPr.Rnd().ToString().PadRight(11, ' ') +
                     daylow + " PrDi Cr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(6).ToString().PadRight(11, ' ') +
-                    " Pr Ch in Lst Hr " + sig.PriceChangeInLastHour.Rnd(5).ToString().PadRight(11, ' ') +
+                    " Pr Ch in Lst Hr " + sig.PrChPercCurrAndRef5min.Rnd(5).ToString().PadRight(11, ' ') +
                     " buy? : " + sig.IsBestTimeToScalpBuy +
                      " Close to Low? : " + sig.IsCloseToDayLow
                  );
@@ -1719,37 +1807,618 @@ namespace Trader.MVVM.View
 
         }
 
-        public void LogNoSellReason(Player player, SymbolPriceChangeTickerResponse PriceChangeResponse, string pair, decimal mysellPrice, decimal? prDiffPerc)
+        public void LogNoSellReason(Player player, Signal sig, decimal mysellPrice, decimal? prDiffPerc)
         {
-            //if(prDiffPerc< player.SellAbovePerc.Deci())
-            //{ 
-            //logger.Info("  " +
-            //ProcessingTimeString +
-            //" " + player.Name +
-            //  " " + pair.Replace("USDT", "").PadRight(7, ' ') +
 
-            //   " BuyCnPr " + player.BuyCoinPrice.Deci().Rnd().ToString().PadRight(10, ' ') +
-            //   " CurCnPr " + mysellPrice.Rnd().ToString().PadRight(10, ' ') +
-            //   " TotBuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
-            //   " TotSlPr  " + player.TotalSellAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
-            //" PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
-            //" < Sell above % " + player.SellAbovePerc.Deci().Rnd(2).ToString().PadRight(3, ' ') + " Dont Sell ");
-            //}
-            //else
-            //{
-            //    logger.Info("  " +
-            //             ProcessingTimeString +
-            //             " " + player.Name +
-            //               " " + pair.Replace("USDT", "").PadRight(7, ' ') +
+            if (configr.ShowSellingFlowLogs)
+            {
+                logger.Info("  " +
+                         StrTradeTime +
+                         " " + player.Name +
+                           " " + player.Pair.Replace("USDT", "").PadRight(7, ' ') +
+                            " BuyCnPr " + player.BuyCoinPrice.Deci().Rnd().ToString().PadRight(10, ' ') +
+                            " CurCnPr " + mysellPrice.Rnd().ToString().PadRight(10, ' ') +
+                            " TotBuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
+                            " TotSlPr  " + player.TotalSellAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
+                            " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
+                            "  > Sell below % " + player.SellBelowPerc.Deci().Rnd(2) +
+                            "  At best sell Time? " + sig.IsBestTimeToSellAtDayHighest.ToString() + " Dont Sell ");
+            }
 
-            //                " BuyCnPr " + player.BuyCoinPrice.Deci().Rnd().ToString().PadRight(10, ' ') +
-            //                " CurCnPr " + mysellPrice.Rnd().ToString().PadRight(10, ' ') +
-            //                " TotBuyPr " + player.TotalBuyCost.Deci().Rnd().ToString().PadRight(8, ' ') +
-            //                " TotSlPr  " + player.TotalSellAmount.Deci().Rnd().ToString().PadRight(8, ' ') +
-            //             " PrDif Bogt & Sold " + prDiffPerc.Deci().Rnd(2).ToString().PadRight(5, ' ') +
-            //             "  > Sell below % " + player.SellBelowPerc.Deci().Rnd(2) + " Dont Sell ");
-            //}
+        }
 
+        #endregion
+
+        #region oldcode
+
+        private void CollectFiveMinReferenceCandles()
+        {
+
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            foreach (var sig in CurrentSignals)
+            {
+                // Collect candles from DB is not sufficent data available in memory
+                using (var db = new DB())
+                {
+                    signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == "5min").ToList();
+
+                    if (sig.Ref5MinCandles.Count < 24)
+                    {
+                        foreach (var refcndl in signalCandles)
+                        {
+                            sig.Ref5MinCandles.Add(refcndl);
+                        }
+                    }
+                }
+
+                // Add new candles to memory and to DB. Throttle if more than necessary candles are collected
+
+                if (DateTime.Now.Minute % 5 == 0)
+                {
+                    var currentDate = DateTime.Now;
+
+                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
+
+                    if (sig.Ref5MinCandles.Any(x => x.CloseTime == time))
+                    {
+                        sig.Ref5MinCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        sig.Ref5MinCandles.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = "5min" });
+
+                        if (sig.Ref5MinCandles.Count > 24)
+                        {
+                            sig.Ref5MinCandles.RemoveAt(0);
+                        }
+
+                        using (var db = new DB())
+                        {
+                            db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='5min' and Pair='" + sig.Symbol + "'");
+
+                            foreach (SignalCandle cndl in sig.Ref5MinCandles)
+                            {
+                                cndl.Id = 0;
+                                db.SignalCandle.Add(cndl);
+                            }
+                            db.SaveChanges();
+                        }
+
+                    }
+                }
+
+                List<SignalCandle> candles = sig.Ref5MinCandles;
+
+                if (candles.Count < 24)
+                {
+                    sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. So dont scalp buy till you have enough data
+                }
+                else
+                {
+                    var mintime = candles.Min(x => x.CloseTime);
+
+                    sig.TotalConsecutive5MinDowns = 0;
+                    sig.TotalConsecutive5MinUps = 0;
+
+                    candles = sig.Ref5MinCandles.OrderByDescending(x => x.CloseTime).ToList();
+
+                    var firstpriceOfCandles = candles.Last().ClosePrice;
+
+
+                    //var avgPriceOfCandles = candles.Average(x => x.ClosePrice);
+                    //bool consecutivedownsbroken = false;
+                    //bool consecutiveupsbroken = false;
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+                        if (candles[i].ClosePrice < candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive5MinDowns++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+
+                        if (candles[i].ClosePrice > candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive5MinUps++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+
+                    sig.PrChPercCurrAndRef5min = sig.CurrPr.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+                }
+
+            }
+
+        }
+
+        private void CollectFifteenMinReferenceCandles()
+        {
+
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            foreach (var sig in CurrentSignals)
+            {
+                // Collect candles from DB is not sufficent data available in memory
+                using (var db = new DB())
+                {
+                    signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == "15min").ToList();
+
+                    if (sig.Ref15MinCandles.Count < 24)
+                    {
+                        foreach (var refcndl in signalCandles)
+                        {
+                            sig.Ref15MinCandles.Add(refcndl);
+                        }
+                    }
+                }
+
+                // Add new candles to memory and to DB. Throttle if more than necessary candles are collected
+
+                if (DateTime.Now.Minute % 15 == 0)
+                {
+                    var currentDate = DateTime.Now;
+
+                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
+
+                    if (sig.Ref15MinCandles.Any(x => x.CloseTime == time))
+                    {
+                        sig.Ref15MinCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        sig.Ref15MinCandles.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = "15min" });
+
+                        if (sig.Ref15MinCandles.Count > 24)
+                        {
+                            sig.Ref15MinCandles.RemoveAt(0);
+                        }
+
+                        using (var db = new DB())
+                        {
+                            db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='15min' and Pair='" + sig.Symbol + "'");
+
+                            foreach (SignalCandle cndl in sig.Ref15MinCandles)
+                            {
+                                cndl.Id = 0;
+                                db.SignalCandle.Add(cndl);
+                            }
+                            db.SaveChanges();
+                        }
+
+                    }
+                }
+
+
+                List<SignalCandle> candles = sig.Ref15MinCandles;
+
+                if (candles.Count < 24)
+                {
+                    sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. So dont scalp buy till you have enough data
+                }
+
+                else
+                {
+                    var mintime = candles.Min(x => x.CloseTime);
+
+                    sig.TotalConsecutive15MinDowns = 0;
+                    sig.TotalConsecutive15MinUps = 0;
+
+                    candles = sig.Ref15MinCandles.OrderByDescending(x => x.CloseTime).ToList();
+
+
+
+                    var firstpriceOfCandles = candles.Last().ClosePrice;
+
+
+                    //var avgPriceOfCandles = candles.Average(x => x.ClosePrice);
+                    //bool consecutivedownsbroken = false;
+                    //bool consecutiveupsbroken = false;
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+                        if (candles[i].ClosePrice < candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive15MinDowns++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+
+                        if (candles[i].ClosePrice > candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive15MinUps++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+
+
+                    sig.PrChPercCurrAndRef15min = sig.CurrPr.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+                }
+
+            }
+
+        }
+
+        private void CollectThirtyMinReferenceCandles()
+        {
+
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            foreach (var sig in CurrentSignals)
+            {
+                // Collect candles from DB is not sufficent data available in memory
+                using (var db = new DB())
+                {
+                    signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == "30min").ToList();
+
+                    if (sig.Ref30MinCandles.Count < 24)
+                    {
+                        foreach (var refcndl in signalCandles)
+                        {
+                            sig.Ref30MinCandles.Add(refcndl);
+                        }
+                    }
+                }
+
+                // Add new candles to memory and to DB. Throttle if more than necessary candles are collected
+
+                if (DateTime.Now.Minute % 30 == 0)
+                {
+                    var currentDate = DateTime.Now;
+
+                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
+
+                    if (sig.Ref30MinCandles.Any(x => x.CloseTime == time))
+                    {
+                        sig.Ref30MinCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        sig.Ref30MinCandles.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = "30min" });
+
+                        if (sig.Ref30MinCandles.Count > 24)
+                        {
+                            sig.Ref30MinCandles.RemoveAt(0);
+                        }
+
+                        using (var db = new DB())
+                        {
+                            db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='30min' and Pair='" + sig.Symbol + "'");
+
+                            foreach (SignalCandle cndl in sig.Ref30MinCandles)
+                            {
+                                cndl.Id = 0;
+                                db.SignalCandle.Add(cndl);
+                            }
+                            db.SaveChanges();
+                        }
+
+                    }
+                }
+
+
+                List<SignalCandle> candles = sig.Ref30MinCandles;
+
+                if (candles.Count < 24)
+                {
+                    sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. So dont scalp buy till you have enough data
+                }
+
+                else
+                {
+                    var mintime = candles.Min(x => x.CloseTime);
+
+                    sig.TotalConsecutive30MinDowns = 0;
+                    sig.TotalConsecutive30MinUps = 0;
+
+                    candles = sig.Ref30MinCandles.OrderByDescending(x => x.CloseTime).ToList();
+
+
+                    var firstpriceOfCandles = candles.Last().ClosePrice;
+
+
+                    //var avgPriceOfCandles = candles.Average(x => x.ClosePrice);
+                    //bool consecutivedownsbroken = false;
+                    //bool consecutiveupsbroken = false;
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+                        if (candles[i].ClosePrice < candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive30MinDowns++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+
+                        if (candles[i].ClosePrice >= candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutive30MinUps++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+
+
+                    sig.PrChPercCurrAndRef30min = sig.CurrPr.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+                }
+
+            }
+
+        }
+
+        private void CollectHourlyReferenceCandles()
+        {
+
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            foreach (var sig in CurrentSignals)
+            {
+                // Collect candles from DB is not sufficent data available in memory
+
+                using (var db = new DB())
+                {
+                    signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == "hour").ToList();
+
+                    if (sig.RefHourCandles.Count < 24)
+                    {
+                        foreach (var refcndl in signalCandles)
+                        {
+                            sig.RefHourCandles.Add(refcndl);
+                        }
+                    }
+                }
+
+                // Add new candles to memory and to DB. Throttle if more than necessary candles are collected
+
+                if (DateTime.Now.Minute % 59 == 0)
+                {
+                    var currentDate = DateTime.Now;
+
+                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, currentDate.Hour, currentDate.Minute, 0);
+
+                    if (sig.RefHourCandles.Any(x => x.CloseTime == time))
+                    {
+                        sig.RefHourCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        sig.RefHourCandles.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = "hour" });
+
+                        if (sig.RefHourCandles.Count > 24)
+                        {
+                            sig.RefHourCandles.RemoveAt(0);
+                        }
+
+                        using (var db = new DB())
+                        {
+                            db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='hour' and Pair='" + sig.Symbol + "'");
+
+                            foreach (SignalCandle cndl in sig.RefHourCandles)
+                            {
+                                cndl.Id = 0;
+                                db.SignalCandle.Add(cndl);
+                            }
+                            db.SaveChanges();
+                        }
+
+                    }
+                }
+
+                List<SignalCandle> candles = sig.RefHourCandles;
+
+                if (candles.Count < 24)
+                {
+                    sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. So dont scalp buy till you have enough data
+                }
+
+                else
+                {
+                    var mintime = candles.Min(x => x.CloseTime);
+
+                    sig.TotalConsecutiveHourDowns = 0;
+                    sig.TotalConsecutiveHourUps = 0;
+
+                    candles = sig.RefHourCandles.OrderByDescending(x => x.CloseTime).ToList();
+
+                    var firstpriceOfCandles = candles.Last().ClosePrice;
+
+
+                    //var avgPriceOfCandles = candles.Average(x => x.ClosePrice);
+                    //bool consecutivedownsbroken = false;
+                    //bool consecutiveupsbroken = false;
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+                        if (candles[i].ClosePrice < candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutiveHourDowns++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+
+                        if (candles[i].ClosePrice > candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutiveHourUps++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+
+                    sig.PrChPercCurrAndRefHr = sig.CurrPr.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+                }
+
+            }
+
+        }
+
+        private void CollectDayReferenceCandles()
+        {
+            List<SignalCandle> signalCandles = new List<SignalCandle>();
+
+            foreach (var sig in CurrentSignals)
+            {
+                // Collect candles from DB is not sufficent data available in memory
+
+                using (var db = new DB())
+                {
+                    signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == "day").ToList();
+
+                    if (sig.RefDayCandles.Count < 7)
+                    {
+                        foreach (var refcndl in signalCandles)
+                        {
+                            sig.RefDayCandles.Add(refcndl);
+                        }
+                    }
+                }
+
+                // Add new candles to memory and to DB. Throttle if more than necessary candles are collected
+
+                if (DateTime.Now.Hour % 23 == 0)
+                {
+                    var currentDate = DateTime.Now;
+
+                    DateTime time = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 23, 0, 0);
+
+                    if (sig.RefDayCandles.Any(x => x.CloseTime == time))
+                    {
+                        sig.RefDayCandles.Where(x => x.CloseTime == time).First().ClosePrice = sig.CurrPr;
+                    }
+                    else
+                    {
+                        sig.RefDayCandles.Add(new SignalCandle { Pair = sig.Symbol, CloseTime = time, ClosePrice = sig.CurrPr, CandleType = "day" });
+
+                        if (sig.RefDayCandles.Count > 7)
+                        {
+                            sig.RefDayCandles.RemoveAt(0);
+                        }
+
+                        using (var db = new DB())
+                        {
+                            db.Database.ExecuteSqlRaw("delete from SignalCandle where CandleType='day' and Pair='" + sig.Symbol + "'");
+
+                            foreach (SignalCandle cndl in sig.RefDayCandles)
+                            {
+                                cndl.Id = 0;
+                                db.SignalCandle.Add(cndl);
+                            }
+                            db.SaveChanges();
+                        }
+
+                    }
+                }
+
+                List<SignalCandle> candles = sig.RefDayCandles;
+
+                if (candles.Count < 7)
+                {
+                    // sig.IsBestTimeToScalpBuy = false; // havent collected enough candles to assess scalp buys. So dont scalp buy till you have enough data
+                }
+
+                else
+                {
+                    var mintime = candles.Min(x => x.CloseTime);
+
+                    sig.TotalConsecutiveDayDowns = 0;
+                    sig.TotalConsecutiveDayUps = 0;
+
+                    candles = sig.RefDayCandles.OrderByDescending(x => x.CloseTime).ToList();
+
+                    var firstpriceOfCandles = candles.Last().ClosePrice;
+
+
+                    //var avgPriceOfCandles = candles.Average(x => x.ClosePrice);
+                    //bool consecutivedownsbroken = false;
+                    //bool consecutiveupsbroken = false;
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+                        if (candles[i].ClosePrice < candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutiveDayDowns++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < candles.Count - 1; i++)
+                    {
+
+                        if (candles[i].ClosePrice > candles[i + 1].ClosePrice) //|| candles[i].ClosePrice < avgPriceOfCandles * 90 / 100
+                        {
+
+                            sig.TotalConsecutiveDayUps++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+                    sig.PrChPercCurrAndRefDay = sig.CurrPr.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
+                }
+
+            }
+
+        }
+
+        private async Task RemoveOldCandles()
+        {
+
+            using (var db = new DB())
+            {
+                await db.Database.ExecuteSqlRawAsync("delete from Candle where CAST(RecordedTime AS DATE)  <= GETDATE()-1");
+            }
 
         }
 

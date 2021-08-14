@@ -22,7 +22,22 @@ namespace Trader.Models
         public bool IsProd { get; set; }
         public bool IsBuyingAllowed { get; set; }
         public bool IsSellingAllowed { get; set; }
+        public bool ShowScalpBuyLogs { get; set; }
+        public bool ShowNoScalpBuyLogs { get; set; }
+        public bool ShowBuyLogs { get; set; }
+        public bool ShowNoBuyLogs { get; set; }
+        public bool ShowSellLogs { get; set; }
+        public bool ShowNoSellLogs { get; set; }
+        public bool ShowBuyingFlowLogs { get; set; }
+        public bool ShowSellingFlowLogs { get; set; }
         public decimal MinimumAmountToTradeWith { get; set; }
+
+        public decimal  DayLowGreaterthanTobuy { get; set; }
+        public decimal DayLowLessthanTobuy { get; set; }
+        public decimal DayHighLessthanToSell { get; set; }
+        public decimal DayHighGreaterthanToSell { get; set; }
+       
+
         public decimal MaximumAmountForaBot { get; set; }
         public decimal DivideHighAndAverageBy { get; set; }
         public decimal BufferPriceForBuyAndSell { get; set; }
@@ -38,6 +53,11 @@ namespace Trader.Models
             builder.Property(e => e.BufferPriceForBuyAndSell).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.CommisionAmount).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.DivideHighAndAverageBy).IsRequired().HasColumnType("decimal(18, 12)");
+
+            builder.Property(e => e.DayLowGreaterthanTobuy).IsRequired().HasColumnType("decimal(18, 2)");
+            builder.Property(e => e.DayLowLessthanTobuy).IsRequired().HasColumnType("decimal(18, 2)");
+            builder.Property(e => e.DayHighLessthanToSell).IsRequired().HasColumnType("decimal(18, 12)");
+            builder.Property(e => e.DayHighGreaterthanToSell).IsRequired().HasColumnType("decimal(18, 12)");
         }
     }
 

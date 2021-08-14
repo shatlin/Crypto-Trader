@@ -12,6 +12,7 @@ namespace Trader.Models
     public class Signal
     {
         public int Id { get; set; }
+        public int CoinId { get; set; }
         public string Symbol { get; set; }
         public long CurrentTradeCount { get; set; }
         public decimal CurrPr { get; set; }
@@ -50,45 +51,78 @@ namespace Trader.Models
         public bool JustRecoveredFromDayLow { get; set; }
         public bool IsPicked { get; set; }
         public bool IsIgnored { get; set; }
-       
-        public DateTime OpenTime { get; set; }
-        public DateTime CloseTime { get; set; }
 
-        public List<SignalCandle> RefDayCandles { get; set; }
-        public List<SignalCandle> RefHourCandles { get; set; }
-        public List<SignalCandle> RefFiveMinCandles { get; set; }
-
-        public int TotalPreviousUps { get; set; }
-        public int TotalPreviousDowns { get; set; }
-
-        public Guid TickerSocketGuid { get; set; }
-        public Guid KlineSocketGuid { get; set; }
         public bool isLastTwoFiveMinsGoingDown { get; set; }
         public bool isLastThreeFiveMinsGoingDown { get; set; }
         public bool isLastThreeFiveMinsGoingUp { get; set; }
 
-        public decimal PriceChangeInLastHour { get; set; }
+        public DateTime OpenTime { get; set; }
+        public DateTime CloseTime { get; set; }
+
+        public List<SignalCandle> RefDayCandles { get; set; }   // will have 7 candles. Last week
+        public List<SignalCandle> RefHourCandles { get; set; }  // will have 24 candles. Last 24 hours
+        public List<SignalCandle> Ref5MinCandles { get; set; }  // will have 24 candles. Last 2 hours
+        public List<SignalCandle> Ref15MinCandles { get; set; } // will have 24 candles. Last 6 hours
+        public List<SignalCandle> Ref30MinCandles { get; set; } // will have 24 candles. Last 12 hours
+
+        public int TotalConsecutiveDayUps { get; set; }
+        public int TotalConsecutiveDayDowns { get; set; }
+
+        public int TotalConsecutiveHourUps { get; set; }
+        public int TotalConsecutiveHourDowns { get; set; }
+
+        public int TotalConsecutive30MinUps { get; set; }
+        public int TotalConsecutive30MinDowns { get; set; }
+
+        public int TotalConsecutive15MinUps { get; set; }
+        public int TotalConsecutive15MinDowns { get; set; }
+
+        public int TotalConsecutive5MinUps { get; set; }
+        public int TotalConsecutive5MinDowns { get; set; }
+     
+       
+        public Guid TickerSocketGuid { get; set; }
+        public Guid KlineSocketGuid { get; set; }
+
+        public decimal PrChPercCurrAndRef5min { get; set; }
+        public decimal PrChPercCurrAndRef15min { get; set; }
+        public decimal PrChPercCurrAndRef30min { get; set; }
+        public decimal PrChPercCurrAndRefHr { get; set; }
+        public decimal PrChPercCurrAndRefDay { get; set; }
+
         public decimal LastTradePrice { get; set; }
     }
 
     public class SignalCandle
     {
         public int Id { get; set; }
-        public int SeqNo { get; set; }
         public string Pair { get; set; }
+        public string CandleType { get; set; } //5Min,15Min,30Min,1Hr,Day
         public DateTime CloseTime { get; set; }
         public decimal ClosePrice { get; set; }
+    }
+
+    public class GlobalSignal
+    {
+        public bool IsMarketOnDownTrendToday { get; set; }
+        public bool IsMarketOnUpTrendToday { get; set; }
+        public bool IsBitCoinGoingUpToday { get; set; }
+        public bool IsBitCoinGoingDownToday { get; set; }
+
+        public bool IsMarketOnDownTrendTthisWeek { get; set; }
+        public bool IsMarketOnUpTrendThisWeek { get; set; }
+        public bool IsBitCoinGoingUpThisWeek { get; set; }
+        public bool IsBitCoinGoingDownThisWeek { get; set; }
+
+        public bool AreMostCoinsGoingDownNow { get; set; }
+        public bool AreMostCoinsGoingUpNow { get; set; }
     }
 
     public partial class SignalCandleConfiguration : IEntityTypeConfiguration<SignalCandle>
     {
         public void Configure(EntityTypeBuilder<SignalCandle> builder)
         {
-      
             builder.Property(e => e.ClosePrice).IsRequired().HasColumnType("decimal(30, 12)");
-            
         }
-
     }
-
 }

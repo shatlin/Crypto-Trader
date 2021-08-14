@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210812103825_m25")]
+    partial class m25
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -472,18 +474,6 @@ namespace Trader2.Migrations
                     b.Property<decimal>("CommisionAmount")
                         .HasColumnType("decimal(18,12)");
 
-                    b.Property<decimal>("DayHighGreaterthanToSell")
-                        .HasColumnType("decimal(18,12)");
-
-                    b.Property<decimal>("DayHighLessthanToSell")
-                        .HasColumnType("decimal(18,12)");
-
-                    b.Property<decimal>("DayLowGreaterthanTobuy")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("DayLowLessthanTobuy")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("DivideHighAndAverageBy")
                         .HasColumnType("decimal(18,12)");
 
@@ -594,6 +584,9 @@ namespace Trader2.Migrations
 
                     b.Property<string>("Pair")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SeqNo")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
