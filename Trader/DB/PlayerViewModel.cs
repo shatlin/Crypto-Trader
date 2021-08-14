@@ -42,6 +42,8 @@ namespace BinanceExchange.API.Models.Response
 
         public decimal? CurrentRoundProfitPerc { get; set; }
 
+        public decimal? CurrentRoundProfitAmt { get; set; }
+
         public string ProfitLossChanges { get; set; }
     }
 
