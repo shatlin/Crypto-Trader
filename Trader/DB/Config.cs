@@ -42,6 +42,17 @@ namespace Trader.Models
         public decimal DivideHighAndAverageBy { get; set; }
         public decimal BufferPriceForBuyAndSell { get; set; }
         public decimal CommisionAmount { get; set; }
+
+        public bool IsReducingSellAbvAllowed { get; set; }
+        public int ReduceSellAboveAtMinute { get; set; }
+        public int ReduceSellAboveFromSecond { get; set; }
+        public int ReduceSellAboveToSecond { get; set; }
+        public decimal ReduceSellAboveBy { get; set; }
+        public decimal MinSellAbovePerc { get; set; }
+        public decimal ReducePriceDiffPercBy { get; set; }
+        public decimal DefaultSellAbovePerc { get; set; }
+        public decimal MinAllowedTradeCount { get; set; }
+        public bool UpdateCoins { get; set; }
     }
 
     public partial class ConfigConfiguration : IEntityTypeConfiguration<Config>
@@ -58,6 +69,11 @@ namespace Trader.Models
             builder.Property(e => e.DayLowLessthanTobuy).IsRequired().HasColumnType("decimal(18, 2)");
             builder.Property(e => e.DayHighLessthanToSell).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.DayHighGreaterthanToSell).IsRequired().HasColumnType("decimal(18, 12)");
+            builder.Property(e => e.ReduceSellAboveBy).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.MinSellAbovePerc).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.ReducePriceDiffPercBy).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.DefaultSellAbovePerc).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.MinAllowedTradeCount).IsRequired().HasColumnType("decimal(18, 12)");
         }
     }
 

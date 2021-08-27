@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210815094455_m28")]
+    partial class m28
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -311,133 +313,6 @@ namespace Trader2.Migrations
                     b.ToTable("Player");
                 });
 
-            modelBuilder.Entity("BinanceExchange.API.Models.Response.PlayerQA", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal?>("AvailableAmountToBuy")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyCoinPrice")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyCommision")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("BuyOrSell")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("BuyOrderId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("BuyTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentCoinPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DayHigh")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DayLow")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DontSellBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("HardSellPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<bool>("IsTrading")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("LastRoundProfitPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Pair")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ProfitLossAmt")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("ProfitLossChanges")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("Quantity")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<int>("RepsTillCancelOrder")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("SellAbovePerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("SellBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("SellCoinPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("SellCommision")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<long>("SellOrderId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("SellTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("TotalBuyCost")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("TotalCurrentValue")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("TotalSellAmount")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<DateTime?>("UpdatedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("isBuyAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isBuyOrderCompleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PlayerQA");
-                });
-
             modelBuilder.Entity("BinanceExchange.API.Models.Response.PlayerTrades", b =>
                 {
                     b.Property<int>("Id")
@@ -565,133 +440,6 @@ namespace Trader2.Migrations
                     b.ToTable("PlayerTrades");
                 });
 
-            modelBuilder.Entity("BinanceExchange.API.Models.Response.PlayerTradesQA", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal?>("AvailableAmountToBuy")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyCoinPrice")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("BuyCommision")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("BuyOrSell")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("BuyOrderId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("BuyTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentCoinPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DayHigh")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DayLow")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("DontSellBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("HardSellPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<bool>("IsTrading")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("LastRoundProfitPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Pair")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ProfitLossAmt")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<string>("ProfitLossChanges")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("Quantity")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<int>("RepsTillCancelOrder")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("SellAbovePerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("SellBelowPerc")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("SellCoinPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("SellCommision")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<long>("SellOrderId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("SellTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("TotalBuyCost")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("TotalCurrentValue")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("TotalSellAmount")
-                        .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<DateTime?>("UpdatedTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("isBuyAllowed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isBuyOrderCompleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isSellAllowed")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PlayerTradesQA");
-                });
-
             modelBuilder.Entity("Trader.Models.APIDetails", b =>
                 {
                     b.Property<int>("id")
@@ -738,9 +486,6 @@ namespace Trader2.Migrations
                     b.Property<decimal>("DayLowLessthanTobuy")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("DefaultSellAbovePerc")
-                        .HasColumnType("decimal(6,4)");
-
                     b.Property<decimal>("DivideHighAndAverageBy")
                         .HasColumnType("decimal(18,12)");
 
@@ -751,9 +496,6 @@ namespace Trader2.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsProd")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsReducingSellAbvAllowed")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsSellingAllowed")
@@ -770,9 +512,6 @@ namespace Trader2.Migrations
 
                     b.Property<decimal>("MaximumAmountForaBot")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinAllowedTradeCount")
-                        .HasColumnType("decimal(18,12)");
 
                     b.Property<decimal>("MinSellAbovePerc")
                         .HasColumnType("decimal(6,4)");
@@ -825,9 +564,6 @@ namespace Trader2.Migrations
                     b.Property<int>("TotalCurrentPauses")
                         .HasColumnType("int");
 
-                    b.Property<bool>("UpdateCoins")
-                        .HasColumnType("bit");
-
                     b.HasKey("id");
 
                     b.ToTable("Config");
@@ -862,12 +598,10 @@ namespace Trader2.Migrations
 
             modelBuilder.Entity("Trader.Models.SignalCandle", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AddedTime")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("CandleType")
                         .HasColumnType("nvarchar(max)");

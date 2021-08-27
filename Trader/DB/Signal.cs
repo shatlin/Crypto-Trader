@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -59,47 +61,65 @@ namespace Trader.Models
         public DateTime OpenTime { get; set; }
         public DateTime CloseTime { get; set; }
 
-        public List<SignalCandle> RefDayCandles { get; set; }   // will have 7 candles. Last week
-        public List<SignalCandle> RefHourCandles { get; set; }  // will have 24 candles. Last 24 hours
-        public List<SignalCandle> Ref5MinCandles { get; set; }  // will have 24 candles. Last 2 hours
-        public List<SignalCandle> Ref15MinCandles { get; set; } // will have 24 candles. Last 6 hours
-        public List<SignalCandle> Ref30MinCandles { get; set; } // will have 24 candles. Last 12 hours
 
-        public int TotalConsecutiveDayUps { get; set; }
-        public int TotalConsecutiveDayDowns { get; set; }
+        public List<SignalCandle> Ref1MinCandles { get; set; } // will have 15 candles. Last 15 mins
+        public int TotalConsecutive1MinUps { get; set; }
+        public int TotalConsecutive1MinDowns { get; set; }
+        public decimal PrChPercCurrAndRef1Min { get; set; }
 
-        public int TotalConsecutiveHourUps { get; set; }
-        public int TotalConsecutiveHourDowns { get; set; }
-
-        public int TotalConsecutive30MinUps { get; set; }
-        public int TotalConsecutive30MinDowns { get; set; }
-
-        public int TotalConsecutive15MinUps { get; set; }
-        public int TotalConsecutive15MinDowns { get; set; }
-
+        public List<SignalCandle> Ref5MinCandles { get; set; }  // will have 6 candles. Last 30 mins
         public int TotalConsecutive5MinUps { get; set; }
         public int TotalConsecutive5MinDowns { get; set; }
-     
-       
+        public decimal PrChPercCurrAndRef5Min { get; set; }
+
+        public List<SignalCandle> Ref15MinCandles { get; set; } // will have 6 candles. Last 1.5 hours
+        public int TotalConsecutive15MinUps { get; set; }
+        public int TotalConsecutive15MinDowns { get; set; }
+        public decimal PrChPercCurrAndRef15Min { get; set; }
+
+        public List<SignalCandle> Ref30MinCandles { get; set; } // will have 6 candles. Last 3 hours
+        public int TotalConsecutive30MinUps { get; set; }
+        public int TotalConsecutive30MinDowns { get; set; }
+        public decimal PrChPercCurrAndRef30Min { get; set; }
+
+        public List<SignalCandle> Ref1HourCandles { get; set; }  // will have 24 candles. Last 24 hours
+        public int TotalConsecutive1HourUps { get; set; }
+        public int TotalConsecutive1HourDowns { get; set; }
+        public decimal PrChPercCurrAndRef1Hour { get; set; }
+
+        public List<SignalCandle> Ref4HourCandles { get; set; }  // will have 24 candles. Last 24 hours
+        public int TotalConsecutive4HourUps { get; set; }
+        public int TotalConsecutive4HourDowns { get; set; }
+        public decimal PrChPercCurrAndRef4Hour { get; set; }
+
+        public List<SignalCandle> Ref1DayCandles { get; set; }   // will have 7 candles. Last week
+        public int TotalConsecutive1DayUps { get; set; }
+        public int TotalConsecutive1DayDowns { get; set; }
+        public decimal PrChPercCurrAndRef1Day { get; set; }
+
+
         public Guid TickerSocketGuid { get; set; }
         public Guid KlineSocketGuid { get; set; }
 
-        public decimal PrChPercCurrAndRef5min { get; set; }
-        public decimal PrChPercCurrAndRef15min { get; set; }
-        public decimal PrChPercCurrAndRef30min { get; set; }
-        public decimal PrChPercCurrAndRefHr { get; set; }
-        public decimal PrChPercCurrAndRefDay { get; set; }
+        
+        
+        
+       
+       
 
         public decimal LastTradePrice { get; set; }
     }
 
     public class SignalCandle
     {
-        public int Id { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Key]
+        public Guid Id { get; set; }
         public string Pair { get; set; }
         public string CandleType { get; set; } //5Min,15Min,30Min,1Hr,Day
         public DateTime CloseTime { get; set; }
         public decimal ClosePrice { get; set; }
+        public DateTime AddedTime { get; set; }
     }
 
     public class GlobalSignal

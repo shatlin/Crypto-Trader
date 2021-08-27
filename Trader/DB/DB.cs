@@ -26,6 +26,8 @@ namespace Trader.Models
         public DbSet<MyCoins> MyCoins { get; set; }
         public DbSet<Player> Player { get; set; }
         public DbSet<PlayerTrades> PlayerTrades { get; set; }
+        public DbSet<PlayerQA> PlayerQA { get; set; }
+        public DbSet<PlayerTradesQA> PlayerTradesQA { get; set; }
         public DbSet<Config> Config { get; set; }
         public DbSet<SignalCandle> SignalCandle { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -46,8 +48,9 @@ namespace Trader.Models
             modelBuilder.ApplyConfiguration(new MyBalanceConfiguration());
             modelBuilder.ApplyConfiguration(new CandleConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerConfiguration());
+            modelBuilder.ApplyConfiguration(new PlayerQAConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
-            modelBuilder.ApplyConfiguration(new PlayerHistConfiguration());
+            modelBuilder.ApplyConfiguration(new PlayerHistQAConfiguration());
             modelBuilder.ApplyConfiguration(new SignalCandleConfiguration());
             modelBuilder.ApplyConfiguration(new CoinConfiguration());
         }
