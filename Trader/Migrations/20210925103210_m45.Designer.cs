@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210925103210_m45")]
+    partial class m45
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -888,11 +890,11 @@ namespace Trader2.Migrations
                     b.Property<string>("Coin")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("DayTradeCount")
-                        .HasColumnType("decimal(30,12)");
+                    b.Property<int>("DayTradeCount")
+                        .HasColumnType("int");
 
-                    b.Property<decimal>("DayVolume")
-                        .HasColumnType("decimal(30,12)");
+                    b.Property<int>("DayVolume")
+                        .HasColumnType("int");
 
                     b.Property<bool>("ForceBuy")
                         .HasColumnType("bit");

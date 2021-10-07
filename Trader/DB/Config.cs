@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 namespace Trader.Models
 {
 
-    public class Config: BaseModel
+    public class Config : BaseModel
     {
-        public int id{get;set; }
+        public int id { get; set; }
         public int MaxPauses { get; set; }
         public int MaxRepsBeforeCancelOrder { get; set; }
         public int IntervalMinutes { get; set; }
@@ -32,11 +32,11 @@ namespace Trader.Models
         public bool ShowSellingFlowLogs { get; set; }
         public decimal MinimumAmountToTradeWith { get; set; }
 
-        public decimal  DayLowGreaterthanTobuy { get; set; }
+        public decimal DayLowGreaterthanTobuy { get; set; }
         public decimal DayLowLessthanTobuy { get; set; }
         public decimal DayHighLessthanToSell { get; set; }
         public decimal DayHighGreaterthanToSell { get; set; }
-       
+
 
         public decimal MaximumAmountForaBot { get; set; }
         public decimal DivideHighAndAverageBy { get; set; }
@@ -52,6 +52,21 @@ namespace Trader.Models
         public decimal ReducePriceDiffPercBy { get; set; }
         public decimal DefaultSellAbovePerc { get; set; }
         public decimal MinAllowedTradeCount { get; set; }
+
+        public bool ShouldSellWhenAllBotsAtLoss { get; set; }
+        public decimal SellWhenAllBotsAtLossBelow { get; set; }
+        public bool CrashSell { get; set; }
+
+        public decimal ScalpFourHourDiffLessThan { get; set; }
+        public decimal ScalpOneHourDiffLessThan { get; set; }
+        public decimal ScalpThirtyMinDiffLessThan { get; set; }
+        public decimal ScalpFifteenMinDiffLessThan { get; set; }
+        public decimal ScalpFiveMinDiffLessThan { get; set; }
+        public int ScalpFourHourDownMoreThan { get; set; }
+        public int ScalpOneHourDownMoreThan { get; set; }
+        public int ScalpThirtyMinDownMoreThan { get; set; }
+        public int ScalpFifteenMinDownMoreThan { get; set; }
+        public int ScalpFiveMinDownMoreThan { get; set; }
         public bool UpdateCoins { get; set; }
     }
 
@@ -64,7 +79,6 @@ namespace Trader.Models
             builder.Property(e => e.BufferPriceForBuyAndSell).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.CommisionAmount).IsRequired().HasColumnType("decimal(18, 12)");
             builder.Property(e => e.DivideHighAndAverageBy).IsRequired().HasColumnType("decimal(18, 12)");
-
             builder.Property(e => e.DayLowGreaterthanTobuy).IsRequired().HasColumnType("decimal(18, 2)");
             builder.Property(e => e.DayLowLessthanTobuy).IsRequired().HasColumnType("decimal(18, 2)");
             builder.Property(e => e.DayHighLessthanToSell).IsRequired().HasColumnType("decimal(18, 12)");
@@ -74,6 +88,12 @@ namespace Trader.Models
             builder.Property(e => e.ReducePriceDiffPercBy).IsRequired().HasColumnType("decimal(6, 4)");
             builder.Property(e => e.DefaultSellAbovePerc).IsRequired().HasColumnType("decimal(6, 4)");
             builder.Property(e => e.MinAllowedTradeCount).IsRequired().HasColumnType("decimal(18, 12)");
+            builder.Property(e => e.ScalpFourHourDiffLessThan).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.ScalpOneHourDiffLessThan).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.ScalpThirtyMinDiffLessThan).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.ScalpFifteenMinDiffLessThan).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.ScalpFiveMinDiffLessThan).IsRequired().HasColumnType("decimal(6, 4)");
+            builder.Property(e => e.SellWhenAllBotsAtLossBelow).IsRequired().HasColumnType("decimal(4, 2)");
         }
     }
 

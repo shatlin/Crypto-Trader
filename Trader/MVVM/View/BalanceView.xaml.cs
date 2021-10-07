@@ -1047,6 +1047,524 @@ namespace Trader.MVVM.View
         //    return signals.OrderBy(x => x.PrDiffCurrAndLowPerc).ToList();
         //}
 
+        //#region QA
+
+        //private async Task BuyTheCoinQA(PlayerQA player, Signal sig)
+        //{
+        //    DB db = new DB();
+
+        //    var PriceResponse = await client.GetPrice(sig.Symbol);
+
+        //    decimal mybuyPrice = PriceResponse.Price;
+
+        //    player.Pair = sig.Symbol;
+
+        //    var coin = myCoins.Where(x => x.Coin == sig.Symbol).FirstOrDefault();
+
+        //    var coinprecison = coin.TradePrecision;
+
+        //    var quantity = (player.AvailableAmountToBuy.Deci() / mybuyPrice).Rnd(coinprecison);
+
+        //    //var buyOrder = await client.CreateOrder(new CreateOrderRequest()
+        //    //{
+        //    //    Price = mybuyPrice,
+        //    //    Quantity = quantity,
+        //    //    Side = OrderSide.Buy,
+        //    //    Symbol = player.Pair,
+        //    //    Type = OrderType.Limit,
+        //    //    TimeInForce = TimeInForce.GTC
+        //    //});
+
+
+        //    player.IsTrading = true;
+        //    player.DayHigh = sig.DayHighPr;
+        //    player.DayLow = sig.DayLowPr;
+        //    player.BuyCoinPrice = mybuyPrice;
+        //    player.Quantity = quantity;
+        //    player.BuyCommision = player.AvailableAmountToBuy * configr.CommisionAmount / 100;
+        //    player.TotalBuyCost = player.AvailableAmountToBuy + player.BuyCommision;
+        //    player.CurrentCoinPrice = mybuyPrice;
+        //    player.TotalCurrentValue = player.AvailableAmountToBuy; //exclude commision in the current value.
+        //    player.BuyTime = DateTime.Now;
+        //    player.BuyOrderId = 10; //[TODO] hardcoded for QA
+        //    player.SellOrderId = 0;
+        //    player.UpdatedTime = DateTime.Now;
+        //    player.BuyOrSell = "Buy";
+        //    player.SellTime = null;
+        //    player.SellCommision = player.BuyCommision;
+        //    player.SellCoinPrice = mybuyPrice;
+        //    player.ProfitLossAmt = (player.TotalCurrentValue - player.TotalBuyCost).Deci();
+        //    player.TotalSellAmount = player.TotalBuyCost; // resetting available amount for trading
+        //    player.AvailableAmountToBuy = 0; // bought, so no amount available to buy
+        //    player.isBuyOrderCompleted = false;
+        //    player.RepsTillCancelOrder = 0;
+        //    player.SellAbovePerc = 0.6M;
+        //    player.SellBelowPerc = player.SellAbovePerc;
+        //    db.PlayerQA.Update(player);
+
+        //    //Send Buy Order
+
+        //    PlayerTradesQA playerHistory = iPlayerQAMapper.Map<PlayerQA, PlayerTradesQA>(player);
+        //    playerHistory.Id = 0;
+        //    await db.PlayerTradesQA.AddAsync(playerHistory);
+        //    await db.SaveChangesAsync();
+        //}
+
+        //private async Task BuyQA()
+        //{
+        //    if (MySignals == null || MySignals.Count() == 0)
+        //    {
+        //        //   logger.Info("  " + StrTradeTime + " no signals found. So cannot proceed for buy process ");
+        //        return;
+        //    }
+
+        //    DB db = new DB();
+
+        //    var players = await db.PlayerQA.OrderBy(x => x.Id).ToListAsync();
+        //    boughtCoins = await db.PlayerQA.Where(x => x.Pair != null).Select(x => x.Pair).ToListAsync();
+
+        //    foreach (var player in players)
+        //    {
+        //        if (player.IsTrading)
+        //        {
+        //            await UpdateActivePlayerStatsQA(player);
+        //            continue;
+        //        }
+
+        //        if (player.isBuyOrderCompleted) // before buying the buyordercompleted should be reset to false, so dont buy if its true
+        //        {
+        //            //  logger.Info("  " + StrTradeTime + " " + player.Name + " isBuyOrderCompleted is true. Cant use it to buy");
+        //            continue;
+        //        }
+
+        //        if (player.AvailableAmountToBuy < configr.MinimumAmountToTradeWith)
+        //        {
+        //            //if (configr.ShowBuyingFlowLogs)
+        //            //    logger.Info("  " + StrTradeTime + " " + player.Name + " Avl Amt " + player.AvailableAmountToBuy + " Not enough for buying ");
+        //            continue;
+        //        }
+        //        //if (player.isBuyAllowed == false)
+        //        //{
+        //        //    //if (configr.ShowBuyingFlowLogs)
+        //        //    //    logger.Info("  " + StrTradeTime + " " + player.Name + "  Not  Allowed for buying");
+        //        //    continue;
+        //        //}
+        //        //if (configr.IsBuyingAllowed == false)
+        //        //{
+        //        //    //if (configr.ShowBuyingFlowLogs)
+        //        //    //    logger.Info("  " + StrTradeTime + " " + player.Name + "  overall system not  Allowed for buying");
+        //        //    continue;
+        //        //}
+
+        //        foreach (Signal sig in MySignals.OrderBy(x => x.PrDiffCurrAndHighPerc).ToList())
+        //        {
+        //            if (sig.IsIgnored)
+        //                continue;
+
+        //            if (sig.IsPicked)
+        //                continue;
+
+        //            if (boughtCoins.Contains(sig.Symbol))
+        //            {
+        //                sig.IsPicked = true;
+        //                continue;
+        //            }
+        //            else
+        //            {
+        //                sig.IsPicked = false;
+        //            }
+
+        //            var bitcoinSignal = MySignals.Where(x => x.Symbol == "BTCUSDT").FirstOrDefault();
+
+        //            if (bitcoinSignal != null)
+        //            {
+        //                // prices are going down. Dont buy till you see recovery
+        //                if (
+        //                    bitcoinSignal.TotalConsecutive15MinDowns >= 2 ||
+        //                    bitcoinSignal.TotalConsecutive5MinDowns >= 2)
+        //                {
+        //                    sig.IsIgnored = true;
+        //                    continue;
+        //                }
+        //            }
+
+        //            // prices are going down. Dont buy till you see recovery
+        //            if (sig.TotalConsecutive1MinDowns >= 3)
+        //            {
+        //                sig.IsIgnored = true;
+        //                continue;
+        //            }
+        //            else
+        //            {
+        //                sig.IsIgnored = false;
+        //            }
+
+        //            // Day Trade Count too low
+        //            if (sig.DayTradeCount < configr.MinAllowedTradeCount)
+        //            {
+        //                //logger.Info(sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //                //  " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') + " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
+        //                //  "  Day Trade Count too low. Dont buy " +
+        //                //  " Day Trade Count " + sig.DayTradeCount.Rnd(1)
+        //                //  );
+
+        //                sig.IsIgnored = true;
+        //                continue;
+        //            }
+        //            else
+        //            {
+        //                sig.IsIgnored = false;
+        //            }
+
+        //            if (sig.IsBestTimeToScalpBuy)
+        //            {
+        //                try
+        //                {
+        //                    await BuyTheCoinQA(player, sig);
+        //                    sig.IsPicked = true;
+        //                    boughtCoins.Add(sig.Symbol);
+        //                    break;
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    logger.Error(" " + player.Name + " " + sig.Symbol + " Exception: " + ex.ToString());
+        //                }
+        //            }
+        //            else
+        //            {
+        //                sig.IsPicked = false;
+        //                sig.IsIgnored = false;
+        //            }
+        //        }
+        //    }
+        //}
+
+        //private async Task SellQA(PlayerQA player)
+        //{
+        //    Signal sig = MySignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
+        //    if (sig == null) return;
+
+        //    DB db = new DB();
+        //    decimal mysellPrice = sig.CurrPr;
+
+        //    if (player == null)
+        //    {
+        //        //logger.Info("Player returned as null. Some issue. Returning from Sell");
+        //        return;
+        //    }
+
+        //    var pair = player.Pair;
+
+        //    if (pair == null)
+        //    {
+        //        //logger.Info("Player's Pair to sell returned as null. Some issue. Returning from Sell");
+        //        return;
+        //    }
+
+        //    var newPlayer = db.PlayerQA.AsNoTracking().Where(x => x.Name == player.Name).FirstOrDefault();
+        //    if (newPlayer.IsTrading == false) return;
+
+        //    //[TODO] Update if productionalized
+
+        //    //if (newPlayer.SellOrderId > 0)
+        //    //{
+        //    //    //logger.Info("Sell order still pending for " + newPlayer.Pair + " " + newPlayer.Name);
+        //    //    return;
+        //    //}
+        //    //if (newPlayer.isBuyOrderCompleted == false)
+        //    //{
+        //    //    //logger.Info("Buy order still pending for " + newPlayer.Pair + " " + newPlayer.Name);
+        //    //    return;
+        //    //}
+
+        //    player.DayHigh = sig.DayHighPr;
+        //    player.DayLow = sig.DayLowPr;
+        //    player.UpdatedTime = DateTime.Now;
+        //    player.SellCoinPrice = mysellPrice;
+
+        //    decimal availableQty = GetAvailQtyQA(player, pair);
+
+        //    if (availableQty <= 0)
+        //    {
+        //        //logger.Info("  " + StrTradeTime + " " + player.Name + " " + pair.Replace("USDT", "").PadRight(7, ' ') + " Available Quantity 0 for " + " Symbol " + player.Pair + " Sell not possible ");
+        //        return;
+        //    }
+
+        //    if (player.Quantity == null || player.Quantity.Deci() == 0)
+        //    {
+        //        //logger.Info("  " + StrTradeTime + " " + player.Name + " " + pair.Replace("USDT", "").PadRight(7, ' ')
+        //        //  + " player.Quantity  0 for " + " Symbol " + player.Pair + " Sell not possible ");
+        //        return;
+        //    }
+
+        //    player.SellCommision = mysellPrice * player.Quantity * configr.CommisionAmount / 100;
+        //    player.TotalSellAmount = mysellPrice * player.Quantity + player.SellCommision;
+        //    player.ProfitLossAmt = (player.TotalSellAmount - player.TotalBuyCost).Deci();
+        //    player.CurrentCoinPrice = mysellPrice;
+        //    player.TotalCurrentValue = player.TotalSellAmount;
+        //    player.SellOrderId = 0;
+        //    var prDiffPerc = player.TotalSellAmount.GetDiffPercBetnNewAndOld(player.TotalBuyCost);
+        //    player.ProfitLossChanges += prDiffPerc.Deci().Rnd(2) + " , ";
+
+        //    if (player.ProfitLossChanges.Length > 200)
+        //    {
+        //        player.ProfitLossChanges = player.ProfitLossChanges.GetLast(200);
+        //    }
+
+        //    var NextSellbelow = prDiffPerc * configr.ReducePriceDiffPercBy / 100;
+
+        //    // less than sellable percentage. Return
+        //    if (prDiffPerc <= player.SellAbovePerc && ForceSell == false)
+        //    {
+
+        //        // Reducing Profit Perecetages every  hour if the coin is not able to make a sell due to high profit % set. Do it till you reach 1%
+
+        //        if (DateTime.Now.Minute == configr.ReduceSellAboveAtMinute &&
+        //            (DateTime.Now.Second >= configr.ReduceSellAboveFromSecond && DateTime.Now.Second <= configr.ReduceSellAboveToSecond))
+        //        {
+
+        //            if (player.SellAbovePerc >= configr.MinSellAbovePerc)
+        //            {
+        //                if (configr.IsReducingSellAbvAllowed)
+        //                {
+        //                    player.SellAbovePerc = player.SellAbovePerc - configr.ReduceSellAboveBy;
+
+        //                    //logger.Info("  " + sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //                    //    " " + player.Name +
+        //                    //   " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //                    //   " Reduced player's SellAbovePerc to " + player.SellAbovePerc);
+        //                }
+        //            }
+        //        }
+
+        //        player.SellBelowPerc = player.SellAbovePerc;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+        //        return;
+        //    }
+
+        //    if (prDiffPerc >= player.SellBelowPerc && ForceSell == false)
+        //    {
+        //        if (prDiffPerc > player.LastRoundProfitPerc && NextSellbelow > player.SellBelowPerc)
+        //        {
+        //            player.SellBelowPerc = NextSellbelow;
+        //        }
+        //        player.LastRoundProfitPerc = prDiffPerc;
+        //        player.AvailableAmountToBuy = 0;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+
+        //        if (sig != null)
+        //        {
+        //            //logger.Info("  " +
+        //            //        sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //            //      " " + player.Name +
+        //            //     " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //            //      " prDiffPerc " + prDiffPerc.Deci().Rnd().ToString().PadRight(11, ' ') +
+        //            //      " > NextSellbelow  " + NextSellbelow.Deci().Rnd().ToString().PadRight(11, ' ') +
+        //            //      " Not selling ");
+        //        }
+        //        return;
+        //    }
+
+        //    if (sig != null)
+        //    {
+        //        //logger.Info("  " + sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //        //         " " + player.Name +
+        //        //         " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //        //         " prDiffPerc " + prDiffPerc.Deci().Rnd().ToString().PadRight(11, ' ') +
+        //        //         "  LastRoundProfitPerc  " + player.LastRoundProfitPerc.Deci().Rnd().ToString().PadRight(11, ' ')
+        //        //        );
+        //    }
+        //    if ((newPlayer.isSellAllowed == false || configr.IsSellingAllowed == false) && ForceSell == false)
+        //    {
+        //        //logger.Info("  " + sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //        //          " " + player.Name +
+        //        //          " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //        //          " Selling not allowed "
+        //        //       );
+        //        player.AvailableAmountToBuy = 0;
+        //        player.LastRoundProfitPerc = prDiffPerc;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+        //        return;
+        //    }
+        //    //  if ((prDiffPerc < player.LastRoundProfitPerc && sig.IsBestTimeToSellAtDayHighest) || ForceSell == true)
+        //    if (((prDiffPerc < player.LastRoundProfitPerc)) || ForceSell == true) // Scalp: (prDiffPerc < player.LastRoundProfitPerc ) || ForceSell == true)
+        //    {
+        //        if (sig != null)
+        //        {
+        //            //logger.Info("  " +
+        //            //       sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //            //     " " + player.Name +
+        //            //    " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //            //     " prDiffPerc " + prDiffPerc.Deci().Rnd().ToString().PadRight(11, ' ') +
+        //            //     " < LastRoundProfitPerc  " + player.LastRoundProfitPerc.Deci().Rnd().ToString().PadRight(11, ' ') +
+        //            //     " selling ");
+        //        }
+
+        //        ForceSell = false;
+
+        //        var PriceChangeResponse = await client.GetDailyTicker(pair);
+
+        //        //logger.Info("  " +
+        //        //            sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //        //          " " + player.Name +
+        //        //         " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+        //        //          " Contacting selling price ticker ");
+
+        //        mysellPrice = PriceChangeResponse.LastPrice;
+
+        //        player.DayHigh = PriceChangeResponse.HighPrice;
+        //        player.DayLow = PriceChangeResponse.LowPrice;
+        //        player.UpdatedTime = DateTime.Now;
+        //        player.SellCoinPrice = mysellPrice;
+        //        player.SellCommision = mysellPrice * player.Quantity * configr.CommisionAmount / 100;
+        //        player.TotalSellAmount = mysellPrice * player.Quantity + player.SellCommision;
+        //        player.ProfitLossAmt = (player.TotalSellAmount - player.TotalBuyCost).Deci();
+        //        player.CurrentCoinPrice = mysellPrice;
+        //        player.TotalCurrentValue = player.TotalSellAmount;
+
+        //        var coinprecison = myCoins.Where(x => x.Coin == pair).FirstOrDefault().TradePrecision;
+
+        //        //var sellOrder = await client.CreateOrder(new CreateOrderRequest()
+        //        //{
+        //        //    Price = mysellPrice,
+        //        //    Quantity = player.Quantity.Deci().Rnd(coinprecison),
+        //        //    Side = OrderSide.Sell,
+        //        //    Symbol = player.Pair,
+        //        //    Type = OrderType.Limit,
+        //        //    TimeInForce = TimeInForce.GTC
+        //        //});
+
+        //        player.SellOrderId = 10; //[TODO] sellOrder.OrderId;
+        //        player.SellTime = DateTime.Now;
+        //        player.AvailableAmountToBuy = player.TotalSellAmount;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+
+        //        await UpdatePlayerAfterSellConfirmedQA(player);
+        //    }
+        //    else
+        //    {
+        //        player.AvailableAmountToBuy = 0;
+        //        player.LastRoundProfitPerc = prDiffPerc;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+        //    }
+
+        //    ForceSell = false;
+        //}
+
+        //public async Task UpdateActivePlayerStatsQA(PlayerQA player)
+        //{
+        //    DB db = new DB();
+
+        //    var playerSignal = MySignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
+
+        //    if (playerSignal != null)
+        //    {
+        //        player.DayHigh = playerSignal.DayHighPr;
+        //        player.DayLow = playerSignal.DayLowPr;
+        //        player.CurrentCoinPrice = playerSignal.CurrPr;
+        //        player.TotalCurrentValue = player.CurrentCoinPrice * player.Quantity;
+        //        player.TotalSellAmount = player.TotalCurrentValue;
+        //        var prDiffPerc = player.TotalSellAmount.GetDiffPercBetnNewAndOld(player.TotalBuyCost);
+        //        player.AvailableAmountToBuy = 0;
+        //        player.UpdatedTime = DateTime.Now;
+        //        db.PlayerQA.Update(player);
+        //        await db.SaveChangesAsync();
+        //    }
+        //}
+
+        //public decimal GetAvailQtyQA(PlayerQA player, string pair)
+        //{
+        //    decimal availableQty = player.Quantity.Deci();
+        //    return availableQty;
+        //}
+
+        //private async Task UpdatePlayerAfterSellConfirmedQA(PlayerQA player)
+        //{
+        //    DB db = new DB();
+
+        //    player.AvailableAmountToBuy = player.TotalSellAmount;
+
+        //    var prDiffPerc = player.TotalSellAmount.GetDiffPercBetnNewAndOld(player.TotalBuyCost);
+
+        //    if (prDiffPerc <= 0)
+        //    {
+        //        player.BuyOrSell = "Loss";
+        //    }
+        //    else
+        //    {
+        //        player.BuyOrSell = "Profit";
+        //    }
+
+        //    PlayerTradesQA PlayerTrades = iPlayerQAMapper.Map<PlayerQA, PlayerTradesQA>(player);
+
+        //    PlayerTrades.Id = 0;
+        //    await db.PlayerTradesQA.AddAsync(PlayerTrades);
+        //    player.LastRoundProfitPerc = 0;
+        //    player.DayHigh = 0.0M;
+        //    player.DayLow = 0.0M;
+        //    player.Pair = null;
+        //    player.BuyCoinPrice = 0.0M;
+        //    player.CurrentCoinPrice = 0.0M;
+        //    player.Quantity = 0.0M;
+        //    player.TotalBuyCost = 0.0M;
+        //    player.TotalCurrentValue = 0.0M;
+        //    player.TotalSellAmount = 0.0M;
+        //    player.BuyTime = null;
+        //    player.SellTime = null;
+        //    player.BuyCommision = 0.0M;
+        //    player.SellCoinPrice = 0.0M;
+        //    player.SellCommision = 0.0M;
+        //    player.IsTrading = false;
+        //    player.BuyOrSell = string.Empty;
+        //    player.ProfitLossAmt = 0;
+        //    player.ProfitLossChanges = string.Empty;
+        //    player.BuyOrderId = 0;
+        //    player.SellOrderId = 0;
+        //    player.HardSellPerc = 0;
+        //    player.isBuyOrderCompleted = false;
+        //    player.RepsTillCancelOrder = 0;
+        //    player.SellAbovePerc = 0.6M;
+        //    player.SellBelowPerc = player.SellAbovePerc;
+        //    db.PlayerQA.Update(player);
+        //    await db.SaveChangesAsync();
+        //    await RedistributeBalancesQA();
+
+        //}
+
+        //public async Task RedistributeBalancesQA()
+        //{
+        //    DB db = new DB();
+
+        //    decimal TotalAmount = 0;
+
+        //    var availplayers = await db.PlayerQA.Where(x => x.IsTrading == false).OrderBy(x => x.Id).ToListAsync();
+
+        //    foreach (var player in availplayers)
+        //    {
+        //        TotalAmount = TotalAmount + player.AvailableAmountToBuy.Deci();
+        //    }
+
+
+        //    if (availplayers.Count() > 0)
+        //    {
+        //        var avgAvailAmountForTrading = TotalAmount / availplayers.Count();
+
+        //        foreach (var player in availplayers)
+        //        {
+        //            player.AvailableAmountToBuy = avgAvailAmountForTrading;
+        //            player.TotalCurrentValue = 0;
+        //            db.PlayerQA.Update(player);
+        //        }
+        //        await db.SaveChangesAsync();
+        //    }
+        //}
+
+        //#endregion QA
 
         #region QA
         //private async void btnClearPlayer_Click(object sender, RoutedEventArgs e)
@@ -1864,7 +2382,145 @@ namespace Trader.MVVM.View
 
         #endregion QA
 
+        #region oldcode
 
+        //private async Task BuyAda()
+        //{
+        //    if (MySignals == null || MySignals.Count() == 0)
+        //    {
+        //        logger.Info("  " + StrTradeTime + " no signals found. So cannot proceed for buy process ");
+        //        return;
+        //    }
+
+        //    DB db = new DB();
+
+        //    var players = await db.Player.OrderBy(x => x.Id).ToListAsync();
+
+        //    var player1 = players.Where(x => x.Name == "DIA01").FirstOrDefault();
+        //    var player2 = players.Where(x => x.Name == "DIA02").FirstOrDefault();
+
+        //    var isPlayer1Trading = player1.IsTrading;
+        //    var isPlayer2Trading = player2.IsTrading;
+
+        //    var player1prDiffPerc = player1.TotalSellAmount.GetDiffPercBetnNewAndOld(player1.TotalBuyCost);
+        //    var player2prDiffPerc = player2.TotalSellAmount.GetDiffPercBetnNewAndOld(player2.TotalBuyCost);
+
+        //    foreach (var player in players)
+        //    {
+        //        if (player.IsTrading)
+        //        {
+        //            await UpdateActivePlayerStats(player);
+        //            continue;
+        //        }
+
+        //        if (player.isBuyOrderCompleted) // before buying the buyordercompleted should be reset to false, so dont buy if its true
+        //        {
+        //            logger.Info("  " + StrTradeTime + " " + player.Name + " isBuyOrderCompleted is true. Cant use it to buy");
+        //            continue;
+        //        }
+        //        if (player.isBuyAllowed == false)
+        //        {
+        //            if (configr.ShowBuyingFlowLogs) logger.Info("  " + StrTradeTime + " " + player.Name + "  Not  Allowed for buying");
+        //            continue;
+        //        }
+        //        if (configr.IsBuyingAllowed == false)
+        //        {
+        //            if (configr.ShowBuyingFlowLogs) logger.Info("  " + StrTradeTime + " " + player.Name + "  overall system not  Allowed for buying");
+        //            continue;
+        //        }
+
+        //        var sig = MySignals.Where(x => x.Symbol == "ADAUSDT").FirstOrDefault();
+
+        //        //    prices are going down. Dont buy till you see recovery
+        //        if (sig.TotalConsecutive1MinDowns >= 3 || sig.TotalConsecutive5MinDowns >= 2)
+        //        {
+        //            logger.Info(sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //              " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') + " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
+        //              "  Prices going down." +
+        //              " 1d >=3  ? " + sig.TotalConsecutive1MinDowns.ToString().PadRight(7, ' ') + " " +
+        //              " 5d >=2  ? " + sig.TotalConsecutive5MinDowns.ToString().PadRight(7, ' ')
+        //              );
+
+        //            return;
+        //        }
+
+        //        //  Day Trade Count too low
+        //        if (sig.DayTradeCount < configr.MinAllowedTradeCount)
+        //        {
+        //            logger.Info(sig.OpenTime.ToString("dd-MMM HH:mm") +
+        //              " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') + " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
+        //              "  Day Trade Count too low. Dont buy " +
+        //              " Day Trade Count " + sig.DayTradeCount.Rnd(1)
+        //              );
+
+        //            return;
+        //        }
+
+
+        //        if (isPlayer1Trading)
+        //        {
+        //            if (player.Name == "DIA02" && player1prDiffPerc < -2M && sig.IsBestTimeToScalpBuy)
+        //            {
+        //                try
+        //                {
+        //                    await BuyTheCoin(player, sig);
+        //                    return;
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    logger.Error(" " + player.Name + " " + sig.Symbol + " Exception: " + ex.ToString());
+        //                }
+        //            }
+        //        }
+        //        else if (isPlayer2Trading)
+        //        {
+        //            if (player.Name == "DIA01" && player2prDiffPerc < -2M && sig.IsBestTimeToScalpBuy)
+        //            {
+        //                try
+        //                {
+        //                    await BuyTheCoin(player, sig);
+        //                    return;
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    logger.Error(" " + player.Name + " " + sig.Symbol + " Exception: " + ex.ToString());
+        //                }
+        //            }
+        //        }
+        //        else if (sig.IsBestTimeToScalpBuy) //  sig.IsBestTimeToBuyAtDayLowest
+        //        {
+        //            try
+        //            {
+        //                await BuyTheCoin(player, sig);
+        //                return;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                logger.Error(" " + player.Name + " " + sig.Symbol + " Exception: " + ex.ToString());
+        //            }
+        //        }
+        //        else
+        //        {
+        //            LogNoBuy(player, sig);
+        //        }
+
+        //    }
+        //}
+
+        //private async Task RemoveOldCandles()
+        //{
+
+        //    using (var db = new DB())
+        //    {
+        //        await db.Database.ExecuteSqlRawAsync("delete from Candle where CAST(RecordedTime AS DATE)  <= GETDATE()-1");
+        //    }
+
+        //}
+
+
+
+
+        #endregion
     }
 
 }

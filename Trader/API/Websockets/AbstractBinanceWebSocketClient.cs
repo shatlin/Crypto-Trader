@@ -310,10 +310,11 @@ namespace BinanceExchange.API.Websockets
                 var ws = ActiveWebSockets[id];
                 return ws.IsAlive;
             }
-            else
-            {
-                throw new Exception($"No Websocket exists with the Id {id.ToString()}");
-            }
+            //else
+            //{
+            //    throw new Exception($"No Websocket exists with the Id {id.ToString()}");
+            //}
+            return false;
         }
     }
 }

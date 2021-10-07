@@ -8,7 +8,7 @@
         xmlns:view="clr-namespace:Trader.MVVM.View"
         mc:Ignorable="d"
         Height="1080" Width="1920" 
-        Background="Transparent" ShowInTaskbar="True"
+        Background="Transparent" ShowInTaskbar="true"
         Title="Pro Trader Prod"  WindowStartupLocation="CenterScreen"  WindowState="Maximized">
 
     <Window.DataContext>

@@ -16,6 +16,10 @@ namespace Trader.Models
         public bool IsIncludedForTrading { get; set; }
         public decimal PercBelowDayHighToBuy { get; set; }
         public decimal PercAboveDayLowToSell { get; set; }
+        public bool ForceBuy { get; set; }
+        public int Rank { get; set; }
+        public decimal DayTradeCount { get; set; }
+        public decimal DayVolume { get; set; }
     }
 
     public partial class CoinConfiguration : IEntityTypeConfiguration<MyCoins>
@@ -24,6 +28,8 @@ namespace Trader.Models
         {
             builder.Property(e => e.PercBelowDayHighToBuy).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.PercAboveDayLowToSell).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.DayTradeCount).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.DayVolume).IsRequired().HasColumnType("decimal(30, 12)");
         }
 
     }

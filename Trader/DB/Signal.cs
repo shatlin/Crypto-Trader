@@ -53,7 +53,8 @@ namespace Trader.Models
         public bool JustRecoveredFromDayLow { get; set; }
         public bool IsPicked { get; set; }
         public bool IsIgnored { get; set; }
-
+        public bool IsIncludedForTrading { get; set; }
+        public bool ForceBuy { get; set; }
         public bool isLastTwoFiveMinsGoingDown { get; set; }
         public bool isLastThreeFiveMinsGoingDown { get; set; }
         public bool isLastThreeFiveMinsGoingUp { get; set; }
@@ -66,46 +67,53 @@ namespace Trader.Models
         public int TotalConsecutive1MinUps { get; set; }
         public int TotalConsecutive1MinDowns { get; set; }
         public decimal PrChPercCurrAndRef1Min { get; set; }
+        public decimal MinRef1Min { get; set; }
+        public decimal MaxRef1Min { get; set; }
 
         public List<SignalCandle> Ref5MinCandles { get; set; }  // will have 6 candles. Last 30 mins
         public int TotalConsecutive5MinUps { get; set; }
         public int TotalConsecutive5MinDowns { get; set; }
         public decimal PrChPercCurrAndRef5Min { get; set; }
+        public decimal MinRef5Min { get; set; }
+        public decimal MaxRef5Min { get; set; }
 
         public List<SignalCandle> Ref15MinCandles { get; set; } // will have 6 candles. Last 1.5 hours
         public int TotalConsecutive15MinUps { get; set; }
         public int TotalConsecutive15MinDowns { get; set; }
         public decimal PrChPercCurrAndRef15Min { get; set; }
+        public decimal MinRef15Min { get; set; }
+        public decimal MaxRef15Min { get; set; }
 
         public List<SignalCandle> Ref30MinCandles { get; set; } // will have 6 candles. Last 3 hours
         public int TotalConsecutive30MinUps { get; set; }
         public int TotalConsecutive30MinDowns { get; set; }
         public decimal PrChPercCurrAndRef30Min { get; set; }
+        public decimal MinRef30Min { get; set; }
+        public decimal MaxRef30Min { get; set; }
 
         public List<SignalCandle> Ref1HourCandles { get; set; }  // will have 24 candles. Last 24 hours
         public int TotalConsecutive1HourUps { get; set; }
         public int TotalConsecutive1HourDowns { get; set; }
         public decimal PrChPercCurrAndRef1Hour { get; set; }
+        public decimal MinRef1Hour { get; set; }
+        public decimal MaxRef1Hour { get; set; }
 
         public List<SignalCandle> Ref4HourCandles { get; set; }  // will have 24 candles. Last 24 hours
         public int TotalConsecutive4HourUps { get; set; }
         public int TotalConsecutive4HourDowns { get; set; }
         public decimal PrChPercCurrAndRef4Hour { get; set; }
+        public decimal MinRef4Hour { get; set; }
+        public decimal MaxRef4Hour { get; set; }
 
         public List<SignalCandle> Ref1DayCandles { get; set; }   // will have 7 candles. Last week
         public int TotalConsecutive1DayUps { get; set; }
         public int TotalConsecutive1DayDowns { get; set; }
         public decimal PrChPercCurrAndRef1Day { get; set; }
-
+        public decimal MinRef1Day { get; set; }
+        public decimal MaxRef1Day { get; set; }
 
         public Guid TickerSocketGuid { get; set; }
         public Guid KlineSocketGuid { get; set; }
-
-        
-        
-        
-       
-       
 
         public decimal LastTradePrice { get; set; }
     }
@@ -117,6 +125,7 @@ namespace Trader.Models
         public Guid Id { get; set; }
         public string Pair { get; set; }
         public string CandleType { get; set; } //5Min,15Min,30Min,1Hr,Day
+        public string UpOrDown { get; set; }
         public DateTime CloseTime { get; set; }
         public decimal ClosePrice { get; set; }
         public DateTime AddedTime { get; set; }

@@ -14,7 +14,8 @@ namespace BinanceExchange.API.Models.Response
         public string Pair { get; set; }
         public bool IsTrading { get; set; }
         public bool isSellAllowed { get; set; }
-       
+        public bool ForceSell { get; set; }
+
         public decimal? DayHigh { get; set; }
         public decimal? DayLow { get; set; }
 

@@ -8,7 +8,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid >
         <Grid.RowDefinitions>
-            <RowDefinition Height="45"/>
+            <RowDefinition Height="37"/>
             <RowDefinition  Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -29,11 +29,11 @@
 
         <TextBlock x:Name="lblBotName" Foreground="#2ed191"  FontSize="24" Grid.Row="0" Grid.Column="4" Text=" "  />
 
-        <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
+        <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  Visibility="Visible" VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
            Grid.Row="0" Grid.Column="4" Click="btnTrade_Click"  Style="{StaticResource ButtonTheme}" />
         
         <DataGrid x:Name="PlayerGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1" 
-                  Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}">
+                  Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}" Visibility="Hidden">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name"  Width="60" Binding="{Binding Name}"/>
                 <DataGridTextColumn Header="Pair" Width="100"  Binding="{Binding Pair}"/>

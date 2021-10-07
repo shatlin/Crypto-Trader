@@ -18,7 +18,8 @@ namespace BinanceExchange.API.Models.Response
         public int RepsTillCancelOrder { get; set; } // 10
         public bool isBuyAllowed { get; set; }
         public bool isSellAllowed { get; set; }
-
+        public bool ForceSell { get; set; }
+      
         public decimal? DayHigh { get; set; }
         public decimal? DayLow { get; set; }
 

@@ -26,8 +26,8 @@
             <Setter.Value>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Height" Value="45"/>
-                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="Height" Value="34"/>
+                    <Setter Property="FontSize" Value="14"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="VerticalAlignment" Value="Center" />
                     <Setter Property="TextBlock.VerticalAlignment" Value="Center"></Setter>

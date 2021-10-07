@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20210905142722_m38")]
+    partial class m38
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -732,9 +734,6 @@ namespace Trader2.Migrations
                     b.Property<decimal>("CommisionAmount")
                         .HasColumnType("decimal(18,12)");
 
-                    b.Property<bool>("CrashSell")
-                        .HasColumnType("bit");
-
                     b.Property<decimal>("DayHighGreaterthanToSell")
                         .HasColumnType("decimal(18,12)");
 
@@ -834,12 +833,6 @@ namespace Trader2.Migrations
                     b.Property<int>("ScalpThirtyMinDownMoreThan")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("SellWhenAllBotsAtLossBelow")
-                        .HasColumnType("decimal(4,2)");
-
-                    b.Property<bool>("ShouldSellWhenAllBotsAtLoss")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("ShowBuyLogs")
                         .HasColumnType("bit");
 
@@ -888,15 +881,6 @@ namespace Trader2.Migrations
                     b.Property<string>("Coin")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("DayTradeCount")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("DayVolume")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<bool>("ForceBuy")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsIncludedForTrading")
                         .HasColumnType("bit");
 
@@ -905,9 +889,6 @@ namespace Trader2.Migrations
 
                     b.Property<decimal>("PercBelowDayHighToBuy")
                         .HasColumnType("decimal(30,12)");
-
-                    b.Property<int>("Rank")
-                        .HasColumnType("int");
 
                     b.Property<int>("TradePrecision")
                         .HasColumnType("int");
@@ -936,9 +917,6 @@ namespace Trader2.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Pair")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpOrDown")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
