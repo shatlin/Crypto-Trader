@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20211016114850_m48")]
+    partial class m48
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -888,18 +890,6 @@ namespace Trader2.Migrations
                     b.Property<string>("CoinName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CoinSymbol")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("DayHighPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("DayLowPrice")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("DayOpenPrice")
-                        .HasColumnType("decimal(30,12)");
-
                     b.Property<decimal>("DayTradeCount")
                         .HasColumnType("decimal(30,12)");
 
@@ -909,31 +899,28 @@ namespace Trader2.Migrations
                     b.Property<decimal>("DayVolumeUSDT")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("FifteenMinChange")
+                    b.Property<decimal?>("FifteenMinChange")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("FiveMinChange")
+                    b.Property<decimal?>("FiveMinChange")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<bool>("ForceBuy")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("FourHourChange")
+                    b.Property<decimal?>("FourHourChange")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<bool>("IsIncludedForTrading")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("MarketCap")
+                    b.Property<decimal?>("OneDayChange")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("OneDayChange")
+                    b.Property<decimal?>("OneHourChange")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("OneHourChange")
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal>("OneWeekChange")
+                    b.Property<decimal?>("OneWeekChange")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<string>("Pair")
@@ -945,16 +932,13 @@ namespace Trader2.Migrations
                     b.Property<decimal>("PercBelowDayHighToBuy")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("PrecisionDecimals")
-                        .HasColumnType("decimal(30,12)");
-
                     b.Property<int>("Rank")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TenMinChange")
+                    b.Property<decimal?>("TenMinChange")
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal>("ThirtyMinChange")
+                    b.Property<decimal?>("ThirtyMinChange")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<int>("TradePrecision")
@@ -963,7 +947,7 @@ namespace Trader2.Migrations
                     b.Property<string>("TradeSuggestion")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("TwoDayChange")
+                    b.Property<decimal?>("TwoDayChange")
                         .HasColumnType("decimal(30,12)");
 
                     b.HasKey("Id");

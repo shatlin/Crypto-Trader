@@ -85,7 +85,13 @@ namespace BinanceExchange.API
             /// </summary>
             public static BinanceEndpointData ExchangeInfo => new BinanceEndpointData(new Uri($"{APIPrefix}/{ApiVersion}/exchangeInfo"), EndpointSecurityType.None);
 
-            
+            public static BinanceEndpointData Products => new BinanceEndpointData(
+                new Uri("https://www.binance.com/exchange-api/v2/public/asset-service/product/get-products"), EndpointSecurityType.None);
+
+
+         
+
+            internal static string APIBaseUrl = "https://api.binance.com/api";
 
             public static BinanceEndpointData ExchangeInfoForPair(string Pair)
             {

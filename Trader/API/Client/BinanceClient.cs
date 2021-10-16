@@ -124,6 +124,13 @@ namespace BinanceExchange.API.Client
             return await _apiProcessor.ProcessGetRequest<ExchangeInfoResponse>(Endpoints.General.ExchangeInfo);
         }
 
+
+        public async Task<ProductResponse> GetProducts()
+        {
+            return await _apiProcessor.ProcessGetRequest<ProductResponse>(Endpoints.General.Products);
+        }
+
+
         /// <summary>
         /// Current exchange trading rules and symbol information
         /// </summary>
