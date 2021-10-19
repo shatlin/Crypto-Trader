@@ -120,11 +120,23 @@ namespace Trader.MVVM.View
         public decimal MarketCap { get; set; }
     }
 
+    public static class CandleLimit
+    {
+        public const int OneMinLimit = 30;
+        public const int FiveMinLimit = 288;
+        public const int FifteenMinLimit = 16;
+        public const int ThirtyMinLimit = 24;
+        public const int OneHourLimit = 24;
+        public const int FourHourLimit = 12;
+        public const int OneDayLimit = 30;
+    }
+
     public partial class HomeView : UserControl
     {
         public List<MyCoins> myCoins { get; set; }
         public DispatcherTimer TradeTimer;
-        public DispatcherTimer ForceBuySellTimer;
+        public DispatcherTimer CollectTimer;
+        public DispatcherTimer CheckSocketsTimer;
         public DateTime TradeTime { get; set; }
         public string StrTradeTime { get; set; }
         public string NextTradeTime { get; set; }
@@ -162,13 +174,15 @@ namespace Trader.MVVM.View
             TradeTimer.Tick += new EventHandler(TraderTimer_Tick);
             TradeTimer.Interval = new TimeSpan(0, 0, configr.IntervalMinutes);
 
-            //ForceBuySellTimer = new DispatcherTimer();
-            //ForceBuySellTimer.Tick += new EventHandler(ForceBuySellTimer_Tick);
-            //ForceBuySellTimer.Interval = new TimeSpan(0, 0, 6);
+            CollectTimer = new DispatcherTimer();
+            CollectTimer.Tick += new EventHandler(CollectTimer_Tick);
+            CollectTimer.Interval = new TimeSpan(0, 2, 0);
+
+            CheckSocketsTimer = new DispatcherTimer();
+            CheckSocketsTimer.Tick += new EventHandler(CheckSocketsTimer_Tick);
+            CheckSocketsTimer.Interval = new TimeSpan(0, 20, 0);
 
             lblBotName.Text = configr.Botname;
-
-
             var api = await db.API.FirstOrDefaultAsync();
 
             client = new BinanceClient(new ClientConfiguration()
@@ -178,7 +192,6 @@ namespace Trader.MVVM.View
                 Logger = logger,
             });
 
-         //   await PeriodicUpdateCoins();
 
             var playerMapConfig = new MapperConfiguration(cfg =>
             {
@@ -200,14 +213,11 @@ namespace Trader.MVVM.View
             MySignals = new List<Signal>();
 
             await GetMyCoins();
-            //  await SetGrid();
 
-            if (configr.UpdateCoins)
-            {
-                // await UpdateCoinsForTrading();
-                //Thread.Sleep(1000);
-                await UpdateAllowedPrecisionsForPairs();
-            }
+            //if (configr.UpdateCoins)
+            //{
+                await UpdateCoins();
+            //}
 
             await RedistributeBalances();
 
@@ -215,17 +225,11 @@ namespace Trader.MVVM.View
             logger.Info("");
             CreateSignals();
 
-
-
-            //while(MySignals.Any(sig=>sig.IsDailyKlineSocketRunning == false || sig.IsSymbolTickerSocketRunning == false))
-            //{
-            //    EnsureAllSocketsRunning();
-            //    Thread.Sleep(200);
-            //}
-
             TradeTimer.Start();
-            // ForceBuySellTimer.Start();
-            logger.Info("Getting signal streams completed  and Timer Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+            CollectTimer.Start();
+            CheckSocketsTimer.Start();
+
+            logger.Info("Getting signal streams completed  and Timers Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
             logger.Info("");
         }
 
@@ -252,8 +256,7 @@ namespace Trader.MVVM.View
                             sig.CurrPr = b.LastPrice; sig.IsSymbolTickerSocketRunning = true;
                         });
 
-                            //    logger.Info("Ticker socket started for " + coin.Coin);
-                        }
+                    }
                     catch (Exception ex)
                     {
                         sig.IsSymbolTickerSocketRunning = false;
@@ -286,32 +289,16 @@ namespace Trader.MVVM.View
                             sig.IsDailyKlineSocketRunning = true;
                         });
 
-                            //logger.Info("Kline  socket started for " + coin.Coin);
 
-                        }
+                    }
                     catch (Exception ex)
                     {
                         sig.IsDailyKlineSocketRunning = false;
                         logger.Info("exception at Kline socket for " + sig.Symbol + "  " + ex.Message);
-                            // Thread.Sleep(100);
-                        }
+                    }
 
                 }
-
-                    //try
-                    //{
-                    //    if (!socket.IsAlive(sig.TickerSocketGuid))
-                    //    {
-                    //        sig.IsSymbolTickerSocketRunning = false;
-                    //        sig.IsDailyKlineSocketRunning = false;
-                    //    }
-                    //}
-                    //catch
-                    //{
-                    //}
-
-                    //}
-                });
+            });
 
         }
 
@@ -360,17 +347,8 @@ namespace Trader.MVVM.View
             }
         }
 
-        // will have 7 candles. Last week
-        // will have 24 candles. Last 24 hours
-        // will have 24 candles. Last 2 hours
-        // will have 24 candles. Last 6 hours
-        // will have 24 candles. Last 12 hours
-
-        private int GetTotalConsecutiveUpOrDown(List<SignalCandle> candleList, string direction)
+        private int GetConsecutiveUpDowns(List<SignalCandle> candleList, string direction)
         {
-            // var mintime = candleList.Min(x => x.CloseTime);
-            // var avgPriceOfCandles = candleList.Average(x => x.ClosePrice);
-
             if (candleList == null || candleList.Count == 0) return 0;
 
             int TotalConsecutiveChanges = 0;
@@ -404,6 +382,8 @@ namespace Trader.MVVM.View
             {
                 signalCandles = db.SignalCandle.AsNoTracking().Where(x => x.Pair == sig.Symbol && x.CandleType == candleType).ToList();
 
+
+
                 if (candleList.Count < count)
                 {
                     foreach (var refcndl in signalCandles)
@@ -415,7 +395,15 @@ namespace Trader.MVVM.View
                     }
                 }
 
+
+
                 var time = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour, minute, 0);
+
+                if (signalCandles == null || signalCandles.Count == 0)
+                {
+                    candleList.Add(new SignalCandle { AddedTime = DateTime.Now, CandleType = candleType, Pair = sig.Symbol, ClosePrice = sig.CurrPr, CloseTime = time, UpOrDown = "down" }
+                    );
+                }
 
                 candleList = candleList.OrderByDescending(x => x.CloseTime).ToList();
 
@@ -466,12 +454,9 @@ namespace Trader.MVVM.View
             return candleList;
         }
 
-        private decimal GetPriceChangeBetweenCurrentAndReferenceStart(decimal currentPrice, List<SignalCandle> candleList)
+        private decimal GetPrChgBetnCrAndRefStart(decimal currentPrice, List<SignalCandle> candleList)
         {
-
-            if (candleList == null || candleList.Count == 0)
-                return 0M;
-            //    candleList = candleList.OrderBy(x => x.CloseTime).ToList();
+            if (candleList == null || candleList.Count == 0) return 0M;
             var firstpriceOfCandles = candleList.First().ClosePrice;
             return currentPrice.GetDiffPercBetnNewAndOld(firstpriceOfCandles);
         }
@@ -479,279 +464,234 @@ namespace Trader.MVVM.View
         private void CollectReferenceCandles()
         {
 
+            bool fiveminsdeleted = false;
             for (int i = 0; i < MySignals.Count; i++)
             {
                 try
                 {
-
                     #region day
 
                     if (DateTime.Now.Hour % 23 == 0 && DateTime.Now.Minute % 57 == 0)
                     {
 
+                        #region delete All 5 min candles to start from Scratch
 
-                        MySignals[i].Ref1DayCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1DayCandles, "day", 30, 23, 57);
-                        MySignals[i].TotalConsecutive1DayDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1DayCandles, "down");
-                        MySignals[i].TotalConsecutive1DayUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1DayCandles, "up");
+                        if (fiveminsdeleted == false)
+                        {
+                            using (var db = new DB())
+                            {
+                                var candleQuery = "delete from SignalCandle where CandleType='5min'";
+                                db.Database.ExecuteSqlRaw(candleQuery);
+                              
+                                fiveminsdeleted = true;
+                            }
+                        }
+
+                        #endregion
+
+                        MySignals[i].Ref5MinCandles = new List<SignalCandle>(); // Reset 5 Mins Candle from Memory
+
+                        MySignals[i].Ref1DayCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1DayCandles, "day", CandleLimit.OneDayLimit, 23, 57);
+                        MySignals[i].TotalConsecutive1DayDowns = GetConsecutiveUpDowns(MySignals[i].Ref1DayCandles, "down");
+                        MySignals[i].TotalConsecutive1DayUps = GetConsecutiveUpDowns(MySignals[i].Ref1DayCandles, "up");
 
                         if (MySignals[i].Ref1DayCandles != null && MySignals[i].Ref1DayCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref1DayCandles.Min(x => x.ClosePrice))
                             {
                                 MySignals[i].TotalConsecutive1DayDowns++;
-                                if (MySignals[i].TotalConsecutive1DayUps > 0)
-                                    MySignals[i].TotalConsecutive1DayUps--;
+                                if (MySignals[i].TotalConsecutive1DayUps > 0) MySignals[i].TotalConsecutive1DayUps--;
                             }
                             else
                             {
-
                                 MySignals[i].TotalConsecutive1DayUps++;
-                                if (MySignals[i].TotalConsecutive1DayDowns > 0)
-                                    MySignals[i].TotalConsecutive1DayDowns--;
+                                if (MySignals[i].TotalConsecutive1DayDowns > 0) MySignals[i].TotalConsecutive1DayDowns--;
                             }
                         }
-                        //   MySignals[i].IsBestTimeToScalpBuy = MySignals[i].RefDayCandles.Count >= 7;
-
                     }
 
-                    MySignals[i].PrChPercCurrAndRef1Day = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref1DayCandles);
-
-                    //if (MySignals[i].Ref1DayCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef1Day = MySignals[i].Ref1DayCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef1Day = MySignals[i].Ref1DayCandles.Max(x => x.ClosePrice);
-                    //}
+                    MySignals[i].PrChPercCurrAndRef1Day = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref1DayCandles);
 
                     #endregion day
 
-                    #region 4hour
+                    #region 4 hour
 
                     if ((DateTime.Now.Hour == 3 || DateTime.Now.Hour == 7 || DateTime.Now.Hour == 11 || DateTime.Now.Hour == 15 ||
                         DateTime.Now.Hour == 19 || DateTime.Now.Hour == 23)
                         && DateTime.Now.Minute % 57 == 0)
                     {
-                        MySignals[i].Ref4HourCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref4HourCandles, "4hour", 12, DateTime.Now.Hour, 57);
-                        MySignals[i].TotalConsecutive4HourDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref4HourCandles, "down");
-                        MySignals[i].TotalConsecutive4HourUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref4HourCandles, "up");
+                        MySignals[i].Ref4HourCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref4HourCandles, "4hour", CandleLimit.FourHourLimit, DateTime.Now.Hour, 57);
+                        MySignals[i].TotalConsecutive4HourDowns = GetConsecutiveUpDowns(MySignals[i].Ref4HourCandles, "down");
+                        MySignals[i].TotalConsecutive4HourUps = GetConsecutiveUpDowns(MySignals[i].Ref4HourCandles, "up");
 
                         if (MySignals[i].Ref4HourCandles != null && MySignals[i].Ref4HourCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref4HourCandles.Min(x => x.ClosePrice))
                             {
-
                                 MySignals[i].TotalConsecutive4HourDowns++;
-
-                                if (MySignals[i].TotalConsecutive4HourUps > 0)
-                                    MySignals[i].TotalConsecutive4HourUps--;
+                                if (MySignals[i].TotalConsecutive4HourUps > 0) MySignals[i].TotalConsecutive4HourUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive4HourUps++;
-
-                                if (MySignals[i].TotalConsecutive4HourDowns > 0)
-                                    MySignals[i].TotalConsecutive4HourDowns--;
+                                if (MySignals[i].TotalConsecutive4HourDowns > 0) MySignals[i].TotalConsecutive4HourDowns--;
                             }
                         }
-
-                        //  MySignals[i].IsBestTimeToScalpBuy = MySignals[i].Ref4HourCandles.Count >= 6;
-
                     }
-                    MySignals[i].PrChPercCurrAndRef4Hour = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref4HourCandles);
+                    MySignals[i].PrChPercCurrAndRef4Hour = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref4HourCandles);
 
-                    if (MySignals[i].Ref4HourCandles.Count > 0)
-                    {
-                        MySignals[i].MinRef4Hour = MySignals[i].Ref4HourCandles.Min(x => x.ClosePrice);
-                        MySignals[i].MaxRef4Hour = MySignals[i].Ref4HourCandles.Max(x => x.ClosePrice);
-                    }
+                    //if (MySignals[i].Ref4HourCandles.Count > 0)
+                    //{
+                    //    MySignals[i].MinRef4Hour = MySignals[i].Ref4HourCandles.Min(x => x.ClosePrice);
+                    //    MySignals[i].MaxRef4Hour = MySignals[i].Ref4HourCandles.Max(x => x.ClosePrice);
+                    //}
                     #endregion 4hour
 
-                    #region 1hour
+                    #region 1 hour
 
                     if (DateTime.Now.Minute % 57 == 0) //Collected for last 24 hours
                     {
-                        MySignals[i].Ref1HourCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1HourCandles, "1hour", 24, DateTime.Now.Hour, 57); // 24 hours
-                        MySignals[i].TotalConsecutive1HourDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1HourCandles, "down");
-                        MySignals[i].TotalConsecutive1HourUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1HourCandles, "up");
+                        MySignals[i].Ref1HourCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1HourCandles, "1hour", CandleLimit.OneHourLimit, DateTime.Now.Hour, 57); // 24 hours
+                        MySignals[i].TotalConsecutive1HourDowns = GetConsecutiveUpDowns(MySignals[i].Ref1HourCandles, "down");
+                        MySignals[i].TotalConsecutive1HourUps = GetConsecutiveUpDowns(MySignals[i].Ref1HourCandles, "up");
 
                         if (MySignals[i].Ref1HourCandles != null && MySignals[i].Ref1HourCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref1HourCandles.Min(x => x.ClosePrice))
                             {
-
                                 MySignals[i].TotalConsecutive1HourDowns++;
-
-                                if (MySignals[i].TotalConsecutive1HourUps > 0)
-                                    MySignals[i].TotalConsecutive1HourUps--;
+                                if (MySignals[i].TotalConsecutive1HourUps > 0) MySignals[i].TotalConsecutive1HourUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive1HourUps++;
-
-                                if (MySignals[i].TotalConsecutive1HourDowns > 0)
-                                    MySignals[i].TotalConsecutive1HourDowns--;
+                                if (MySignals[i].TotalConsecutive1HourDowns > 0) MySignals[i].TotalConsecutive1HourDowns--;
                             }
                         }
-
-                        //  MySignals[i].IsBestTimeToScalpBuy = MySignals[i].Ref1HourCandles.Count >= 12;
-
                     }
-                    MySignals[i].PrChPercCurrAndRef1Hour = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref1HourCandles);
 
-                    //if (MySignals[i].Ref1HourCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef1Hour = MySignals[i].Ref1HourCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef1Hour = MySignals[i].Ref1HourCandles.Max(x => x.ClosePrice);
-                    //}
+                    MySignals[i].PrChPercCurrAndRef1Hour = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref1HourCandles);
+
                     #endregion 1hour
 
-                    #region 30minute
+                    #region 30 minute
 
                     if (DateTime.Now.Minute % 30 == 0) //Collected for last 6 hours
                     {
-                        MySignals[i].Ref30MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref30MinCandles, "30min", 24, DateTime.Now.Hour, DateTime.Now.Minute);
-                        MySignals[i].TotalConsecutive30MinDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref30MinCandles, "down");
-                        MySignals[i].TotalConsecutive30MinUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref30MinCandles, "up");
+                        MySignals[i].Ref30MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref30MinCandles, "30min", CandleLimit.ThirtyMinLimit, DateTime.Now.Hour, DateTime.Now.Minute);
+                        MySignals[i].TotalConsecutive30MinDowns = GetConsecutiveUpDowns(MySignals[i].Ref30MinCandles, "down");
+                        MySignals[i].TotalConsecutive30MinUps = GetConsecutiveUpDowns(MySignals[i].Ref30MinCandles, "up");
 
                         if (MySignals[i].Ref30MinCandles != null && MySignals[i].Ref30MinCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref30MinCandles.Min(x => x.ClosePrice))
                             {
                                 MySignals[i].TotalConsecutive30MinDowns++;
-                                if (MySignals[i].TotalConsecutive30MinUps > 0)
-                                    MySignals[i].TotalConsecutive30MinUps--;
+                                if (MySignals[i].TotalConsecutive30MinUps > 0) MySignals[i].TotalConsecutive30MinUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive30MinUps++;
-                                if (MySignals[i].TotalConsecutive30MinDowns > 0)
-                                    MySignals[i].TotalConsecutive30MinDowns--;
+                                if (MySignals[i].TotalConsecutive30MinDowns > 0) MySignals[i].TotalConsecutive30MinDowns--;
                             }
                         }
 
-                        // MySignals[i].IsBestTimeToScalpBuy = MySignals[i].Ref30MinCandles.Count >= 12;
+
 
                     }
-                    MySignals[i].PrChPercCurrAndRef30Min = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref30MinCandles);
-                    //if (MySignals[i].Ref30MinCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef30Min = MySignals[i].Ref30MinCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef30Min = MySignals[i].Ref30MinCandles.Max(x => x.ClosePrice);
-                    //}
+                    MySignals[i].PrChPercCurrAndRef30Min = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref30MinCandles);
+
                     #endregion 30minute
 
-                    #region 15minute
+                    #region 15 minute
 
                     if (DateTime.Now.Minute % 15 == 0) // collected for last 3 hours
                     {
-                        MySignals[i].Ref15MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref15MinCandles, "15min", 16, DateTime.Now.Hour, DateTime.Now.Minute);
-                        MySignals[i].TotalConsecutive15MinDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref15MinCandles, "down");
-                        MySignals[i].TotalConsecutive15MinUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref15MinCandles, "up");
+                        MySignals[i].Ref15MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref15MinCandles, "15min", CandleLimit.FifteenMinLimit, DateTime.Now.Hour, DateTime.Now.Minute);
+                        MySignals[i].TotalConsecutive15MinDowns = GetConsecutiveUpDowns(MySignals[i].Ref15MinCandles, "down");
+                        MySignals[i].TotalConsecutive15MinUps = GetConsecutiveUpDowns(MySignals[i].Ref15MinCandles, "up");
 
                         if (MySignals[i].Ref15MinCandles != null && MySignals[i].Ref15MinCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref15MinCandles.Min(x => x.ClosePrice))
                             {
                                 MySignals[i].TotalConsecutive15MinDowns++;
-                                if (MySignals[i].TotalConsecutive15MinUps > 0)
-                                    MySignals[i].TotalConsecutive15MinUps--;
+                                if (MySignals[i].TotalConsecutive15MinUps > 0) MySignals[i].TotalConsecutive15MinUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive15MinUps++;
-                                if (MySignals[i].TotalConsecutive15MinDowns > 0)
-                                    MySignals[i].TotalConsecutive15MinDowns--;
+                                if (MySignals[i].TotalConsecutive15MinDowns > 0) MySignals[i].TotalConsecutive15MinDowns--;
                             }
                         }
-                        //  MySignals[i].IsBestTimeToScalpBuy = MySignals[i].Ref15MinCandles.Count >= 12;
 
                     }
-                    MySignals[i].PrChPercCurrAndRef15Min = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref15MinCandles);
+                    MySignals[i].PrChPercCurrAndRef15Min = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref15MinCandles);
 
-                    //if (MySignals[i].Ref15MinCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef15Min = MySignals[i].Ref15MinCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef15Min = MySignals[i].Ref15MinCandles.Max(x => x.ClosePrice);
-                    //}
                     #endregion 15minute
 
-                    #region 5minute
+                    #region 5 minute
+
                     if (DateTime.Now.Minute % 5 == 0) // collected for last day
                     {
-                        MySignals[i].Ref5MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref5MinCandles, "5min", 288, DateTime.Now.Hour, DateTime.Now.Minute);
-                        MySignals[i].TotalConsecutive5MinDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref5MinCandles, "down");
-                        MySignals[i].TotalConsecutive5MinUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref5MinCandles, "up");
+                        MySignals[i].Ref5MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref5MinCandles, "5min", CandleLimit.FiveMinLimit, DateTime.Now.Hour, DateTime.Now.Minute);
+                        MySignals[i].TotalConsecutive5MinDowns = GetConsecutiveUpDowns(MySignals[i].Ref5MinCandles, "down");
+                        MySignals[i].TotalConsecutive5MinUps = GetConsecutiveUpDowns(MySignals[i].Ref5MinCandles, "up");
 
                         if (MySignals[i].Ref5MinCandles != null && MySignals[i].Ref5MinCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref5MinCandles.Min(x => x.ClosePrice))
                             {
                                 MySignals[i].TotalConsecutive5MinDowns++;
-                                if (MySignals[i].TotalConsecutive5MinUps > 0)
-                                    MySignals[i].TotalConsecutive5MinUps--;
+                                if (MySignals[i].TotalConsecutive5MinUps > 0) MySignals[i].TotalConsecutive5MinUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive5MinUps++;
-                                if (MySignals[i].TotalConsecutive5MinDowns > 0)
-                                    MySignals[i].TotalConsecutive5MinDowns--;
+                                if (MySignals[i].TotalConsecutive5MinDowns > 0) MySignals[i].TotalConsecutive5MinDowns--;
                             }
                         }
 
 
                     }
-                    MySignals[i].PrChPercCurrAndRef5Min = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref5MinCandles);
+                    MySignals[i].PrChPercCurrAndRef5Min = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref5MinCandles);
 
-                    //if (MySignals[i].Ref5MinCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef5Min = MySignals[i].Ref5MinCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef5Min = MySignals[i].Ref5MinCandles.Max(x => x.ClosePrice);
-                    //}
 
                     #endregion 5minute
 
-                    #region 1minute
+                    #region 1 minute
 
                     if (DateTime.Now.Minute % 1 == 0) // collected for last hour
                     {
-                        MySignals[i].Ref1MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1MinCandles, "1min", 30, DateTime.Now.Hour, DateTime.Now.Minute);
-                        MySignals[i].TotalConsecutive1MinDowns = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1MinCandles, "down");
-                        MySignals[i].TotalConsecutive1MinUps = GetTotalConsecutiveUpOrDown(MySignals[i].Ref1MinCandles, "up");
+                        MySignals[i].Ref1MinCandles = FillSignalCandles(MySignals[i], MySignals[i].Ref1MinCandles, "1min", CandleLimit.OneMinLimit, DateTime.Now.Hour, DateTime.Now.Minute);
+                        MySignals[i].TotalConsecutive1MinDowns = GetConsecutiveUpDowns(MySignals[i].Ref1MinCandles, "down");
+                        MySignals[i].TotalConsecutive1MinUps = GetConsecutiveUpDowns(MySignals[i].Ref1MinCandles, "up");
 
                         if (MySignals[i].Ref1MinCandles != null && MySignals[i].Ref1MinCandles.Count > 0)
                         {
                             if (MySignals[i].CurrPr <= MySignals[i].Ref1MinCandles.Min(x => x.ClosePrice))
                             {
                                 MySignals[i].TotalConsecutive1MinDowns++;
-                                if (MySignals[i].TotalConsecutive1MinUps > 0)
-                                    MySignals[i].TotalConsecutive1MinUps--;
+                                if (MySignals[i].TotalConsecutive1MinUps > 0) MySignals[i].TotalConsecutive1MinUps--;
                             }
                             else
                             {
                                 MySignals[i].TotalConsecutive1MinUps++;
-                                if (MySignals[i].TotalConsecutive1MinDowns > 0)
-                                    MySignals[i].TotalConsecutive1MinDowns--;
+                                if (MySignals[i].TotalConsecutive1MinDowns > 0) MySignals[i].TotalConsecutive1MinDowns--;
                             }
                         }
 
-                        // MySignals[i].IsBestTimeToScalpBuy = MySignals[i].Ref1MinCandles.Count >= 30;
-
                     }
-                    MySignals[i].PrChPercCurrAndRef1Min = GetPriceChangeBetweenCurrentAndReferenceStart(MySignals[i].CurrPr, MySignals[i].Ref1MinCandles);
-                    //if (MySignals[i].Ref1MinCandles.Count > 0)
-                    //{
-                    //    MySignals[i].MinRef1Min = MySignals[i].Ref1MinCandles.Min(x => x.ClosePrice);
-                    //    MySignals[i].MaxRef1Min = MySignals[i].Ref1MinCandles.Max(x => x.ClosePrice);
-                    //}
+                    MySignals[i].PrChPercCurrAndRef1Min = GetPrChgBetnCrAndRefStart(MySignals[i].CurrPr, MySignals[i].Ref1MinCandles);
+
                     #endregion 1minute
+
+                    #region calculations
 
                     MySignals[i].PrDiffHighAndLowPerc = MySignals[i].DayHighPr.GetDiffPercBetnNewAndOld(MySignals[i].DayLowPr);
                     MySignals[i].PrDiffCurrAndLowPerc = MySignals[i].CurrPr.GetDiffPercBetnNewAndOld(MySignals[i].DayLowPr);
                     MySignals[i].PrDiffCurrAndHighPerc = MySignals[i].CurrPr.GetDiffPercBetnNewAndOld(MySignals[i].DayHighPr);
                     MySignals[i].JustRecoveredFromDayLow = MySignals[i].PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && MySignals[i].PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy;
-
-                    //MySignals[i].IsAtDayLow = MySignals[i].PrDiffCurrAndLowPerc >= configr.DayLowGreaterthanTobuy && MySignals[i].PrDiffCurrAndLowPerc <= configr.DayLowLessthanTobuy;
-
-                    //MySignals[i].IsAtDayHigh = MySignals[i].PrDiffCurrAndHighPerc <= configr.DayHighLessthanToSell && MySignals[i].PrDiffCurrAndHighPerc >= configr.DayHighGreaterthanToSell;
 
                     MySignals[i].IsAtDayLow = MySignals[i].CurrPr < MySignals[i].DayAveragePr;
                     MySignals[i].IsAtDayHigh = MySignals[i].CurrPr > MySignals[i].DayAveragePr;
@@ -761,12 +701,20 @@ namespace Trader.MVVM.View
                     MySignals[i].IsCloseToDayLow = MySignals[i].CurrPr < dayAveragePrice;
                     MySignals[i].DayAveragePr = (MySignals[i].DayHighPr + MySignals[i].DayLowPr) / 2;
 
-                    MySignals[i].DayHighPr = MySignals[i].Ref1HourCandles.Max(x => x.ClosePrice);
-                    MySignals[i].DayLowPr = MySignals[i].Ref1HourCandles.Min(x => x.ClosePrice);
+                    if (MySignals[i].Ref1HourCandles.Count > 0)
+                    {
+                        MySignals[i].DayHighPr = MySignals[i].Ref1HourCandles.Max(x => x.ClosePrice);
+                        MySignals[i].DayLowPr = MySignals[i].Ref1HourCandles.Min(x => x.ClosePrice);
+                    }
+                    else
+                    {
+                        MySignals[i].DayHighPr = MySignals[i].Ref1MinCandles.Max(x => x.ClosePrice);
+                        MySignals[i].DayLowPr = MySignals[i].Ref1MinCandles.Min(x => x.ClosePrice);
+                    }
 
                     var coin = myCoins.Where(x => x.Pair == MySignals[i].Symbol).FirstOrDefault();
 
-                    MySignals[i].ForceBuy = coin.ForceBuy;
+                  
 
                     if (coin != null)
                     {
@@ -777,17 +725,175 @@ namespace Trader.MVVM.View
                         MySignals[i].IsIncludedForTrading = false;
                     }
 
-                    MySignals[i].IsBestTimeToBuyAtDayLowest = MySignals[i].CurrPr > 0 && MySignals[i].PrDiffCurrAndHighPerc < MySignals[i].PercBelowDayHighToBuy
-                                                                     && MySignals[i].PrDiffHighAndLowPerc > MySignals[i].PercAboveDayLowToSell && MySignals[i].IsCloseToDayLow;
+                    MySignals[i].IsBestTimeToBuyAtDayLowest = MySignals[i].CurrPr > 0 &&
+                                                              MySignals[i].PrDiffCurrAndHighPerc < MySignals[i].PercBelowDayHighToBuy &&
+                                                              MySignals[i].PrDiffHighAndLowPerc > MySignals[i].PercAboveDayLowToSell &&
+                                                              MySignals[i].IsCloseToDayLow;
 
-                    MySignals[i].IsBestTimeToSellAtDayHighest = MySignals[i].CurrPr > 0 && MySignals[i].PrDiffHighAndLowPerc > MySignals[i].PercAboveDayLowToSell && MySignals[i].IsAtDayHigh;
+                    MySignals[i].IsBestTimeToSellAtDayHighest = MySignals[i].CurrPr > 0 &&
+                                                                MySignals[i].PrDiffHighAndLowPerc > MySignals[i].PercAboveDayLowToSell &&
+                                                                MySignals[i].IsAtDayHigh;
+
+                    #endregion calculations
+
                 }
                 catch (Exception ex)
                 {
                     logger.Info("Exception at CollectReferenceCandles " + MySignals[i].Symbol + " " + ex.Message);
-                    // throw;
                 }
+            }
 
+            using (var db = new DB())
+            {
+                foreach (var coin in myCoins)
+                {
+                    try
+                    {
+                        var sig = MySignals.Where(x => x.Symbol == coin.Pair).FirstOrDefault();
+                        var AllOneMin = sig.Ref1MinCandles.OrderByDescending(x=>x.CloseTime);
+                        var AllFiveMin = sig.Ref5MinCandles.OrderByDescending(x => x.CloseTime);
+                        var FifteenMin = sig.Ref15MinCandles.OrderByDescending(x => x.CloseTime).Take(3);
+                        var ThirtyMin = sig.Ref30MinCandles.OrderByDescending(x => x.CloseTime).Take(5);
+                        var OneHour = sig.Ref1HourCandles.OrderByDescending(x => x.CloseTime);
+                        var FourHour = sig.Ref4HourCandles.OrderByDescending(x => x.CloseTime);
+
+                        var Fifteen_OneMin = AllOneMin.Take(15);
+                        var Ten_OneMin = AllOneMin.Take(10);
+                        var Five_OneMin = AllOneMin.Take(5);
+
+                        var isOneOnUpTrend = false;
+                        if (AllOneMin.Any())
+                        {
+                            isOneOnUpTrend = Ten_OneMin.First().ClosePrice >= Ten_OneMin.Max(x => x.ClosePrice);
+
+                            coin.FiveMinChange = ((coin.CurrentPrice - Five_OneMin.Last().ClosePrice) / Five_OneMin.Last().ClosePrice) * 100;
+                            coin.TenMinChange = ((coin.CurrentPrice  - Ten_OneMin.Last().ClosePrice) / Ten_OneMin.Last().ClosePrice) * 100;
+                            coin.FifteenMinChange = ((coin.CurrentPrice - Fifteen_OneMin.Last().ClosePrice) / Fifteen_OneMin.Last().ClosePrice) * 100;
+                            coin.ThirtyMinChange = ((coin.CurrentPrice - AllOneMin.Last().ClosePrice) / AllOneMin.Last().ClosePrice) * 100;
+                        }
+                        else
+                        {
+                            isOneOnUpTrend = false;
+                            coin.ThirtyMinChange = 0;
+                            coin.FiveMinChange = 0;
+                            coin.TenMinChange = 0;
+                            coin.FifteenMinChange = 0;
+                        }
+
+                       
+                        var Five_FiveMin = AllFiveMin.Take(5).ToList();
+                        var Nine_FiveMin = AllFiveMin.Take(9).ToList();
+                        var Twelve_FiveMin = AllFiveMin.Take(12).ToList();
+
+                        var isFiveOnUpTrend = false;
+                        coin.CurrentPrice = sig.CurrPr;
+
+                        if (AllFiveMin.Any())
+                        {
+                            isFiveOnUpTrend = coin.CurrentPrice >= Five_FiveMin.Max(x => x.ClosePrice);
+                            coin.FourtyFiveMinChange = ((coin.CurrentPrice - Nine_FiveMin.Last().ClosePrice) / Nine_FiveMin.Last().ClosePrice) * 100;
+                            coin.OneHourChange = ((coin.CurrentPrice - Twelve_FiveMin.Last().ClosePrice) / Twelve_FiveMin.Last().ClosePrice) * 100;
+                            coin.TwentyFourHourChange = ((coin.CurrentPrice - AllFiveMin.Last().ClosePrice) / AllFiveMin.Last().ClosePrice) * 100;
+                            coin.DayLowPrice = AllFiveMin.Min(x => x.ClosePrice);
+                            coin.DayHighPrice = AllFiveMin.Max(x => x.ClosePrice);
+                            coin.DayOpenPrice = AllFiveMin.First().ClosePrice;
+                        }
+                        else
+                        {
+                            coin.DayLowPrice = coin.CurrentPrice;
+                            coin.DayHighPrice = coin.CurrentPrice;
+                            coin.DayOpenPrice = coin.CurrentPrice;
+                            coin.OneHourChange=0;
+                            coin.FourtyFiveMinChange=0;
+                            coin.TwentyFourHourChange = 0;
+                        }
+
+                    
+                        var isFifteenOnUpTrend = false;
+
+                        if(FifteenMin.Any())
+                        {
+                            isFifteenOnUpTrend= coin.CurrentPrice >= FifteenMin.Max(x => x.ClosePrice);
+                        }
+                       
+                     
+                        var isThirtyOnUpTrend = false;
+
+                        if(ThirtyMin.Any())
+                        {
+                            isThirtyOnUpTrend= coin.CurrentPrice >= ThirtyMin.Max(x => x.ClosePrice);
+                        }
+
+                     
+                        var FourOneHour = OneHour.Take(4);
+                        bool isHourOnUpTrend = false;
+
+                        if (OneHour.Any())
+                        {
+                            coin.FourHourChange = ((coin.CurrentPrice - FourOneHour.Last().ClosePrice) / FourOneHour.Last().ClosePrice) * 100;
+                            isHourOnUpTrend = coin.CurrentPrice >= FourOneHour.Max(x => x.ClosePrice);
+                        }
+                        else
+                        {
+                            coin.FourHourChange = 0;
+                        }
+
+                    
+                        bool isFourHourOnUpTrend = false;
+                        if (FourHour.Any())
+                        {
+                           coin.FortyEightHourChange = ((coin.CurrentPrice - FourHour.Last().ClosePrice) / FourHour.Last().ClosePrice) * 100;
+                           isFourHourOnUpTrend = coin.CurrentPrice >= FourHour.Max(x => x.ClosePrice);
+                        }
+                        else
+                        {
+                            coin.FortyEightHourChange = 0;
+                        }
+
+                        var OneDay = sig.Ref1DayCandles.Take(7);
+                        bool isOneDayOnUpTrend = false;
+
+                        if (OneDay.Any())
+                        {
+                             coin.OneWeekChange = ((OneDay.First().ClosePrice - OneDay.Last().ClosePrice) / OneDay.Last().ClosePrice) * 100;
+                            isOneDayOnUpTrend = coin.CurrentPrice >= OneDay.Max(x => x.ClosePrice);
+                        }
+                        else
+                        {
+                               coin.OneWeekChange = 0;
+                        }
+
+                        coin.ClimbingFast = isOneOnUpTrend && isFiveOnUpTrend && isFifteenOnUpTrend; //&& isThirtyOnUpTrend
+                        coin.ClimbedHigh = isOneOnUpTrend && isFiveOnUpTrend && isFifteenOnUpTrend && isThirtyOnUpTrend;
+                        coin.SuperHigh = isOneOnUpTrend && isFiveOnUpTrend && isFifteenOnUpTrend && isThirtyOnUpTrend && isHourOnUpTrend;
+
+                        coin.DayTradeCount = sig.DayTradeCount;
+                        //coin.DayVolume = coinSignal.DayVol;
+
+                        if (coin.ClimbingFast)
+                        {
+                            coin.TradeSuggestion = "L1: up in five 1,5 and 15 min candles<br>Good to buy";
+                        }
+                        else if (coin.ClimbedHigh)
+                        {
+                            coin.TradeSuggestion = "L2: up in five 1,5,15,30 min candles<br>Mostly will go high";
+                        }
+                        else if (coin.SuperHigh)
+                        {
+                            coin.TradeSuggestion = "L3: up in five 1,5,15,30,60 min candles<br>Can go higher or will start to go down?";
+                        }
+                        else
+                        {
+                            coin.TradeSuggestion = String.Empty;
+                        }
+                        db.Update(coin);
+                    }
+                    catch
+                    {
+
+                    }
+                }
+                db.SaveChanges();
             }
         }
 
@@ -1217,19 +1323,19 @@ namespace Trader.MVVM.View
         {
             using (var db = new DB())
             {
-                var recentSells = await db.PlayerTrades.Where(x => x.BuyOrSell != "Buy").OrderByDescending(x => x.Id).Take(10).ToListAsync();
+                var recentSells = await db.PlayerTrades.Where(x => x.BuyOrSell != "Buy").OrderByDescending(x => x.Id).Take(15).ToListAsync();
 
                 foreach (var recentSell in recentSells)
                 {
                     if (recentSell.Pair == sig.Symbol && sig.CurrPr > (recentSell.BuyCoinPrice + recentSell.SellCoinPrice) / 2)
                     {
-                        //       logger.Info(
-                        //           sig.OpenTime.ToString("dd-MMM HH:mm") +
-                        //           " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
-                        //           " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
-                        //           "  Recently Sold. " +
-                        //           " CrPr > last bought + sold / 2 " +
-                        //((recentSell.BuyCoinPrice + recentSell.SellCoinPrice) / 2).Deci().Rnd(3).ToString().PadRight(7, ' ') + " ");
+                        logger.Info(
+                            sig.OpenTime.ToString("dd-MMM HH:mm") +
+                            " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
+                            " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
+                            "  Recently Sold. " +
+                            " CrPr > last bought + sold / 2 " +
+                 ((recentSell.BuyCoinPrice + recentSell.SellCoinPrice) / 2).Deci().Rnd(3).ToString().PadRight(7, ' ') + " ");
                         return true;
                     }
                 }
@@ -1259,8 +1365,8 @@ namespace Trader.MVVM.View
             var PriceResponse = await client.GetPrice(sig.Symbol);
             var orderbook = await client.GetOrderBook(sig.Symbol, false, 5);
 
-            decimal mybuyPrice = PriceResponse.Price;
-            //   decimal mybuyPrice = orderbook.Asks.Min(x => x.Price);
+            // decimal mybuyPrice = PriceResponse.Price;
+            decimal mybuyPrice = orderbook.Asks.Min(x => x.Price);
 
             //foreach (var bid in orderbook.Bids)
             //{
@@ -1382,7 +1488,16 @@ namespace Trader.MVVM.View
                 {
                     var sig = MySignals.Where(x => x.Symbol == forcebuyCoin.Pair).FirstOrDefault();
 
-                    if (!IsCoinTradeCountTooLow(sig) && !IsCoinPriceGoingDown(sig))
+                    //if (await IsRecentlySold(sig) || IsCoinTradeCountTooLow(sig))
+                    //{
+                    //    forcebuyCoin.ForceBuy=false;
+                    //    db.Update(forcebuyCoin);
+                    //    await db.SaveChangesAsync();
+                    //    sig.IsIgnored = true;
+                    //    continue;
+                    //}
+
+                    if (!IsCoinPriceGoingDown(sig))
                     {
                         await BuyTheCoin(player, sig, true);
                         sig.IsPicked = true;
@@ -1405,11 +1520,7 @@ namespace Trader.MVVM.View
                 //        continue;
 
 
-                //    if (await IsRecentlySold(sig) && sig.ForceBuy == false)
-                //    {
-                //        sig.IsIgnored = true;
-                //        continue;
-                //    }
+               
 
                 //    if (boughtCoins.Contains(sig.Symbol))
                 //    {
@@ -2075,63 +2186,19 @@ namespace Trader.MVVM.View
             return availableQty;
         }
 
-        public async Task UpdateAllowedPrecisionsForPairs()
-        {
-
-            DB db = new DB();
-
-            exchangeInfo = await client.GetExchangeInfo();
-            await GetMyCoins();
-
-            foreach (var coin in myCoins)
-            {
-                var symbol = exchangeInfo.Symbols.Where(x => x.Symbol == coin.Pair).FirstOrDefault();
-                if (symbol != null)
-                {
-                    ExchangeInfoSymbolFilterLotSize lotsize = symbol.Filters[2] as ExchangeInfoSymbolFilterLotSize;
-                    var precision = lotsize.StepSize.GetAllowedPrecision();
-                    coin.TradePrecision = precision;
-                    db.MyCoins.Update(coin);
-                }
-                //    logger.Info("Precision for coin " + coin.Coin + " is set as " + precision + " Original step size from exchange info is " + lotsize.StepSize);
-            }
-
-            await db.SaveChangesAsync();
-
-
-        }
-
         private async Task GetMyCoins()
         {
             using (var db = new DB())
             {
-                myCoins = await db.MyCoins.AsNoTracking().Where(x => x.IsIncludedForTrading == true).ToListAsync();
+              myCoins = await db.MyCoins.AsNoTracking().Where(x => x.IsIncludedForTrading == true).ToListAsync();
+
+              //  myCoins = await db.MyCoins.AsNoTracking().Where(x => x.Pair == "REPUSDT").ToListAsync();
             }
         }
 
         private async Task UpdateCoins()
         {
-
-            await GetMyCoins();
-            using (var db = new DB())
-            {
-                foreach (var coin in myCoins.Where(x => x.IsIncludedForTrading == true))
-                {
-                    var sig = MySignals.Where(x => x.Symbol == coin.Pair).FirstOrDefault();
-                    coin.DayTradeCount = sig.DayTradeCount;
-                    coin.DayVolume = sig.DayVol;
-                    db.Update(coin);
-                }
-                await db.SaveChangesAsync();
-            }
-            await GetMyCoins();
-        }
-
-
-
-        private async Task PeriodicUpdateCoins()
-        {
-            await GetMyCoins();
+           
             var binanceCoinData = await client.GetProducts();
 
             List<CoinData> coinDataList = new List<CoinData>();
@@ -2165,7 +2232,7 @@ namespace Trader.MVVM.View
                     coinDataList.Add(coinData);
                 }
             }
-     
+
 
             using (var db = new DB())
             {
@@ -2173,147 +2240,60 @@ namespace Trader.MVVM.View
                 int i = 0;
                 foreach (var coindata in coinDataList.OrderByDescending(x => x.USDTVolume))
                 {
-                    i++;
-                    if (!coins.Contains(coindata.pair))
+                    try
                     {
-                        MyCoins coin = new MyCoins();
-                        coin.Pair = coindata.pair;
-                        coin.IsIncludedForTrading = true;
-                        coin.TradePrecision = coindata.precision.GetAllowedPrecision();
-                        coin.PercAboveDayLowToSell = 13;
-                        coin.PercBelowDayHighToBuy = -13;
-                        coin.CoinName = coindata.coinName;
-                        coin.CoinSymbol = coindata.coinSymbol;
-                        coin.Rank = i;
-                        coin.DayVolume = coindata.volume;
-                        coin.DayVolumeUSDT = coindata.USDTVolume;
-                        coin.DayOpenPrice = coin.DayOpenPrice;
-                        coin.DayHighPrice = coin.DayHighPrice;
-                        coin.DayLowPrice = coin.DayLowPrice;
-                        coin.FiveMinChange = 0M;
-                        coin.TenMinChange = 0M;
-                        coin.FifteenMinChange = 0M;
-                        coin.ThirtyMinChange = 0M;
-                        coin.OneHourChange = 0M;
-                        coin.FourHourChange = 0M;
-                        coin.OneDayChange = 0M;
-                        coin.TwoDayChange = 0M;
-                        coin.OneWeekChange = 0M;
-                        coin.PrecisionDecimals = coindata.precision;  
-                        coin.MarketCap = coindata.MarketCap;
-                        coin.TradeSuggestion = String.Empty;
-                        await db.MyCoins.AddAsync(coin);
+                        i++;
+                        if (!coins.Contains(coindata.pair))
+                        {
+                            MyCoins coin = new MyCoins();
+                            coin.Pair = coindata.pair;
+                            coin.IsIncludedForTrading = false;
+                            coin.TradePrecision = coindata.precision.GetAllowedPrecision();
+                            coin.PercAboveDayLowToSell = 13;
+                            coin.PercBelowDayHighToBuy = -13;
+                            coin.CoinName = coindata.coinName;
+                            coin.CoinSymbol = coindata.coinSymbol;
+                            coin.Rank = i;
+                            coin.DayVolume = coindata.volume;
+                            coin.DayVolumeUSDT = coindata.USDTVolume;
+                            coin.DayOpenPrice = coin.DayOpenPrice;
+                            coin.DayHighPrice = coin.DayHighPrice;
+                            coin.DayLowPrice = coin.DayLowPrice;
+                            coin.FiveMinChange = 0M;
+                            coin.TenMinChange = 0M;
+                            coin.FifteenMinChange = 0M;
+                            coin.ThirtyMinChange = 0M;
+                            coin.OneHourChange = 0M;
+                            coin.FourHourChange = 0M;
+                            coin.TwentyFourHourChange = 0M;
+                            coin.FortyEightHourChange = 0M;
+                            coin.OneWeekChange = 0M;
+                            coin.PrecisionDecimals = coindata.precision;
+                            coin.MarketCap = coindata.MarketCap;
+                            coin.TradeSuggestion = String.Empty;
+                            await db.MyCoins.AddAsync(coin);
+                        }
+                        else
+                        {
+                            var coin = db.MyCoins.Where(x => x.Pair == coindata.pair).FirstOrDefault();
+                            coin.TradePrecision = coindata.precision.GetAllowedPrecision();
+                            coin.Rank = i;
+                            coin.DayVolume = coindata.volume;
+                            coin.DayVolumeUSDT = coindata.USDTVolume;
+                            coin.DayOpenPrice = coin.DayOpenPrice;
+                            coin.DayHighPrice = coin.DayHighPrice;
+                            coin.DayLowPrice = coin.DayLowPrice;
+                            coin.PrecisionDecimals = coindata.precision;
+                            coin.MarketCap = coindata.MarketCap;
+                            db.MyCoins.Update(coin);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        var coin = myCoins.Where(x => x.Pair == coindata.pair).FirstOrDefault();
-                        coin.TradePrecision = coindata.precision.GetAllowedPrecision();
-                        coin.CoinName = coindata.coinName;
-                        coin.CoinSymbol = coindata.coinSymbol;
-                        coin.Rank = i;
-                        coin.DayVolume = coindata.volume;
-                        coin.DayVolumeUSDT = coindata.USDTVolume;
-                        coin.DayOpenPrice = coin.DayOpenPrice;
-                        coin.DayHighPrice = coin.DayHighPrice;
-                        coin.DayLowPrice = coin.DayLowPrice;
-                        coin.FiveMinChange = 0M;
-                        coin.TenMinChange = 0M;
-                        coin.FifteenMinChange = 0M;
-                        coin.ThirtyMinChange = 0M;
-                        coin.OneHourChange = 0M;
-                        coin.FourHourChange = 0M;
-                        coin.OneDayChange = 0M;
-                        coin.TwoDayChange = 0M;
-                        coin.OneWeekChange = 0M;
-                        coin.PrecisionDecimals = coindata.precision;
-                        coin.MarketCap = coindata.MarketCap;
-                        coin.TradeSuggestion = String.Empty;
-                        db.MyCoins.Update(coin);
+                        logger.Info("Exception while updating coins "+ex.Message);
                     }
                 }
 
-                await db.SaveChangesAsync();
-            }
-        }
-
-        public async Task UpdateCoinsForTrading()
-        {
-            List<Signal> signals = new List<Signal>();
-            exchangeInfo = await client.GetExchangeInfo();
-
-            foreach (var symbol in exchangeInfo.Symbols)
-            {
-                if (symbol.Symbol.EndsWith("USDT"))
-                {
-                    if (symbol.Symbol.EndsWith("UPUSDT") || symbol.Symbol.EndsWith("DOWNUSDT") ||
-                        symbol.Symbol.EndsWith("BULLUSDT") || symbol.Symbol.EndsWith("BEARUSDT") || symbol.Symbol == "BUSDUSDT" ||
-                        symbol.Symbol == "USDCUSDT" || symbol.Symbol == "EURUSDT" || symbol.Symbol == "DAIUSDT"
-                        )
-                    {
-                        continue;
-                    }
-                    var pricechangeresponse = await client.GetDailyTicker(symbol.Symbol);
-                    Signal signal = new Signal();
-                    signal.Symbol = symbol.Symbol;
-                    signal.DayTradeCount = pricechangeresponse.TradeCount;
-                    signals.Add(signal);
-                }
-            }
-
-            signals = signals.OrderByDescending(x => x.DayTradeCount).ToList();
-
-            using (var db = new DB())
-            {
-                List<string> coins = db.MyCoins.Select(x => x.Pair).ToList();
-                List<string> playercoins = db.Player.Select(x => x.Pair).ToList();
-                //  List<string> playerQAcoins = db.PlayerQA.Select(x => x.Pair).ToList();
-
-                foreach (var sig in signals)
-                {
-                    // heavily traded but not in coin list. Add
-
-                    //if (sig.DayTradeCount > configr.MinAllowedTradeCount)
-                    //{
-                    if (!coins.Contains(sig.Symbol))
-                    {
-                        MyCoins coin = new MyCoins();
-                        coin.Pair = sig.Symbol;
-                        coin.IsIncludedForTrading = true;
-                        coin.TradePrecision = 0;
-                        coin.PercAboveDayLowToSell = 13;
-                        coin.PercBelowDayHighToBuy = -13;
-                        await db.MyCoins.AddAsync(coin);
-                        logger.Info(sig.Symbol.PadRight(7, ' ') + " Trade Count " + sig.DayTradeCount.ToString().PadRight(11, ' ') + " Coin Added");
-                    }
-                    else
-                    {
-                        //logger.Info(sig.Symbol.PadRight(7, ' ') + " Trade Count " + sig.DayTradeCount.ToString().PadRight(11, ' ') + " Coin existing");
-                    }
-                    // }
-                    //else
-                    //{
-                    //    if (!playercoins.Contains(sig.Symbol)) // && !playerQAcoins.Contains(sig.Symbol)
-                    //    {
-                    //        var coin = await db.MyCoins.Where(x => x.Coin == sig.Symbol).FirstOrDefaultAsync();
-
-                    //        if (coin != null)
-                    //        {
-                    //            db.MyCoins.Remove(coin);
-
-                    //            logger.Info(sig.Symbol.PadRight(7, ' ') + " Trade Count " + sig.DayTradeCount.ToString().PadRight(11, ' ') + " Coin Removed");
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        logger.Info(sig.Symbol.PadRight(7, ' ') + " Trade Count " + sig.DayTradeCount.ToString().PadRight(11, ' ') + " Coin Being Traded. Cant remove");
-                    //    }
-                    //}
-
-                    // low traded, but in playerlist. Dont delete for now
-                    //low traded and not in playerlist. Delete
-
-                    // logger.Info(sig.Symbol.PadRight(7, ' ') + " Trade Count " + sig.DayTradeCount.ToString().PadRight(11, ' '));
-                }
                 await db.SaveChangesAsync();
             }
         }
@@ -2341,163 +2321,55 @@ namespace Trader.MVVM.View
             logger.Info("Trading Started at " + StrTradeTime);
             bitCoinStatuslogged = false;
 
-            //await GetMyCoins();
-
-            //if (myCoins.Any(x => x.ForceBuy == true))
-            //{
-            //    return; // coins are marked to buy. Dont use trading code at this time.
-            //}
-
-            //using (var db2 = new DB())
-            //{
-            //    var players = await db2.Player.AsNoTracking().Where(x => x.ForceSell == true).ToListAsync();
-            //    if (players.Any())
-            //    {
-            //        return;
-            //    }
-            //}
-
             if (isControlCurrentlyInTradeMethod) return;
-
             isControlCurrentlyInTradeMethod = true;
 
             DB db = new DB();
             configr = await db.Config.FirstOrDefaultAsync();
-
-
-
             NextTradeTime = TradeTime.AddSeconds(configr.IntervalMinutes).ToString("dd-MMM HH:mm:ss");
 
-            var watch = new Stopwatch();
-            watch.Start();
-
-            EnsureAllSocketsRunning();
-            ResetSignalsWithSelectedValues();
-
-            watch.Stop();
-
-            logger.Info("Total EnsureAllSocketsRunning calculation time " + watch.ElapsedMilliseconds);
-
-            watch.Restart();
-
-
-            CollectReferenceCandles();
-
-            watch.Stop();
-
-            logger.Info("Total CollectReferenceCandles calculation time " + watch.ElapsedMilliseconds);
-
-            watch.Restart();
-
-            //  CreateScalpBuySignals();
-            CreateBuyLowestSellHighestSignals();
-
-            watch.Stop();
-
-            logger.Info("Total CreateBuyLowestSellHighestSignals calculation time " + watch.ElapsedMilliseconds);
-
-            watch.Restart();
-
-            LogInfo();
-
-
-
-
+            await GetMyCoins();
             await UpdateTradeBuyDetails();
             await UpdateTradeSellDetails();
-            await UpdateCoins();
-
-            watch.Stop();
-
-            logger.Info("Total UpdateTradeBuyDetails UpdateTradeSellDetails UpdateCoins calculation time " + watch.ElapsedMilliseconds);
-
-            watch.Restart();
+          //  await UpdateCoins();
 
             #region Buy
-
             try
             {
-                //logger.Info("");
-                //logger.Info("Buying Started for " + StrTradeTime);
-                //logger.Info("");
                 await Buy();
-                //logger.Info("");
-                //logger.Info("Buying Completed for " + StrTradeTime);
-                //logger.Info("");
-
             }
             catch (Exception ex)
             {
                 logger.Error("Exception at buy " + ex.Message);
             }
-
-            logger.Info("");
-
-
-            watch.Stop();
-
-            logger.Info("Total Buy time " + watch.ElapsedMilliseconds);
-
             #endregion Buys
 
             #region Sell
 
-            watch.Restart();
-
             try
             {
-
                 var activePlayers = await db.Player.AsNoTracking().OrderBy(x => x.Id).Where(x => x.IsTrading == true).ToListAsync();
-
                 foreach (var player in activePlayers)
                 {
                     await Sell(player);
                 }
+
+                await CheckCrashToSellAll();
             }
             catch (Exception ex)
             {
                 logger.Error("Exception in sell  " + ex.Message);
             }
-
-            watch.Stop();
-
-            logger.Info("Total Sell time " + watch.ElapsedMilliseconds);
-
-            #endregion  Sell
-
-            #region Check Crash Sell
-
-            watch.Restart();
-
-            try
-            {
-                await CheckCrashToSellAll();
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Exception in Crash sell set up " + ex.Message);
-            }
             finally
             {
                 UpdateConfigAfterCrashSell();
             }
+            #endregion  Sell
 
-            watch.Stop();
-
-            logger.Info("Total CheckCrashToSellAll time " + watch.ElapsedMilliseconds);
-
-            logger.Info("");
             logger.Info("Trading Completed at  " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
-            #endregion
-
-
-
-            logger.Info("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
             isControlCurrentlyInTradeMethod = false;
-
         }
-
 
         #region low priority methods
 
@@ -2517,59 +2389,62 @@ namespace Trader.MVVM.View
 
         }
 
-        private async void ForceBuySellTimer_Tick(object sender, EventArgs e)
+        private void CollectTimer_Tick(object sender, EventArgs e)
         {
+            CollectData();
+        }
 
-            if (isControlCurrentlyInTradeMethod) return;
+        private void CollectData()
+        {
+            logger.Info("Collecting Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
 
             try
             {
-                isControlCurrentlyInTradeMethod = true;
-
-                await GetMyCoins();
-
-                if (myCoins.Any(x => x.ForceBuy == true))
-                {
-                    logger.Info("coins with forcebuy set to true exist. Buying...");
-                    await Buy();
-                }
-                else
-                {
-                    logger.Info("No coins with forcebuy set to true");
-                }
-
-                using (var db = new DB())
-                {
-                    var players = await db.Player.AsNoTracking().Where(x => x.ForceSell == true).ToListAsync();
-                    if (players.Any())
-                    {
-                        logger.Info("coins with forcesell set to true exist. Selling...");
-                        foreach (var player in players)
-                        {
-                            await Sell(player);
-                        }
-                    }
-                    else
-                    {
-                        logger.Info("No players with forcesell set to true");
-                    }
-                }
+                EnsureAllSocketsRunning();
+                ResetSignalsWithSelectedValues();
+                CollectReferenceCandles();
+                CreateBuyLowestSellHighestSignals();
+              //  LogInfo();
             }
             catch (Exception ex)
             {
-
-                logger.Error("Exception at force buy and sell " + ex.Message);
+                logger.Error("Exception at CollectTimer_Tick " + ex.Message);
             }
-            finally
+
+            logger.Info("Collecting Completed at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+        }
+
+        private async void CheckSocketsTimer_Tick(object sender, EventArgs e)
+        {
+            logger.Info("Checking Sockets and updating Coins Started at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
+
+            await UpdateCoins();
+            foreach (var sig in MySignals)
             {
-                isControlCurrentlyInTradeMethod = false;
+                try
+                {
+                    if (!socket.IsAlive(sig.TickerSocketGuid))
+                    {
+                        sig.IsSymbolTickerSocketRunning = false;
+                        sig.IsDailyKlineSocketRunning = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Exception at Checking Sockets " + ex.Message);
+                }
             }
-
+            logger.Info("Checking Sockets and updating Coins Completed at " + DateTime.Now.ToString("dd-MMM HH:mm:ss"));
         }
 
         private async void btnTrade_Click(object sender, RoutedEventArgs e)
         {
             await Trade();
+        }
+
+        private void btnCollect_Click(object sender, RoutedEventArgs e)
+        {
+            CollectData();
         }
 
         private async Task ClearPlayer(Player player)
@@ -2639,59 +2514,6 @@ namespace Trader.MVVM.View
         {
             await ClearData();
 
-        }
-
-        private async Task SetGrid()
-        {
-            DB db = new DB();
-            decimal? totProfitPerc = 0;
-            decimal? totProfit = 0;
-            decimal? totalbuys = 0;
-            decimal? totalcurrent = 0;
-            PlayerViewModels = new List<PlayerViewModel>();
-            var players = await db.Player.Where(x => x.IsTrading == true).ToListAsync();
-
-            foreach (var player in players)
-            {
-                PlayerViewModel playerViewModel = new PlayerViewModel();
-                var pair = player.Pair;
-                playerViewModel.Name = player.Name;
-                playerViewModel.Pair = pair;
-                playerViewModel.BuyPricePerCoin = player.BuyCoinPrice;
-                playerViewModel.CurrentPricePerCoin = player.CurrentCoinPrice;
-                playerViewModel.QuantityBought = player.Quantity;
-                playerViewModel.BuyTime = Convert.ToDateTime(player.BuyTime).ToString("dd-MMM HH:mm");
-                playerViewModel.SellBelowPerc = player.SellBelowPerc;
-                playerViewModel.SellAbovePerc = player.SellAbovePerc;
-                playerViewModel.TotalBuyCost = player.TotalBuyCost;
-                playerViewModel.TotalSoldAmount = player.TotalSellAmount;
-                playerViewModel.TotalCurrentValue = player.TotalCurrentValue;
-                totalcurrent += playerViewModel.TotalCurrentValue;
-                totalbuys += playerViewModel.TotalBuyCost;
-                var prDiffPerc = player.TotalCurrentValue.GetDiffPercBetnNewAndOld(player.TotalBuyCost);
-                totProfitPerc += prDiffPerc;
-                totProfit += (player.TotalCurrentValue - player.TotalBuyCost);
-                playerViewModel.CurrentRoundProfitPerc = prDiffPerc;
-                playerViewModel.CurrentRoundProfitAmt = player.TotalCurrentValue - player.TotalBuyCost;
-                playerViewModel.LastRoundProfitPerc = player.LastRoundProfitPerc;
-                playerViewModel.ProfitLossChanges = player.ProfitLossChanges.GetLast(95);
-                PlayerViewModels.Add(playerViewModel);
-            }
-
-            PlayerGrid.ItemsSource = PlayerViewModels.OrderByDescending(x => x.CurrentRoundProfitAmt);
-
-            var inactiveplayers = await db.Player.Where(x => x.IsTrading == false).ToListAsync();
-
-            foreach (var inactiveplayer in inactiveplayers)
-            {
-                totalbuys += inactiveplayer.AvailableAmountToBuy;
-                totalcurrent += inactiveplayer.AvailableAmountToBuy;
-            }
-
-            lblAvgProfLoss.Text = "Profit: " + totProfit.Deci().Rnd(2) + " Invested: " + totalbuys.Deci().Rnd(0) + " Current: " + totalcurrent.Deci().Rnd(0);
-
-            lblLastRun.Text = "Last Run : " + StrTradeTime;
-            lblNextRun.Text = "Next Run: " + NextTradeTime;
         }
 
         private async Task ClearData()
@@ -2871,805 +2693,60 @@ namespace Trader.MVVM.View
 
         }
 
-        private void oldbuylowlogic()
-        {
-            ////if current price is less than the lowest price of last two weeks
-            //// if current price is close to days low
-            ////if current price like -9% less than minimum price of last two weeks ( too much)
-
-            //if (sig.CurrPr < sig.MinRef1Day && sig.IsCloseToDayLow && sig.PrDiffCurrAndHighPerc < sig.PercBelowDayHighToBuy)
-            //{
-            //    sig.IsBestTimeToBuyAtDayLowest = true;
-            //    logger.Info(sig.Symbol + "  " + StrTradeTime + " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(5, ' ')
-            //        + " < Ref 1day candle mins " + sig.MinRef1Day.Rnd(5).ToString().PadRight(5, ' '));
-            //    continue;
-            //}
-            //else
-            //{
-            //    sig.IsBestTimeToBuyAtDayLowest = false;
-            //}
-
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-            //    if (sig.CurrPr < sig.MinRef4Hour && sig.IsCloseToDayLow && sig.CurrPr.GetDiffPercBetnNewAndOld(sig.MinRef4Hour) < sig.PercBelowDayHighToBuy)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < Ref 4hr candle mins " + sig.MinRef4Hour.Rnd(5).ToString().PadRight(5, ' '));
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-            //    if (sig.CurrPr < sig.MinRef1Hour && sig.IsCloseToDayLow && sig.CurrPr.GetDiffPercBetnNewAndOld(sig.MinRef1Hour) < sig.PercBelowDayHighToBuy)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < Ref 1hr candle mins " + sig.MinRef1Hour.Rnd(5).ToString().PadRight(5, ' '));
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-            //    if (sig.CurrPr < sig.MinRef30Min && sig.IsCloseToDayLow && sig.CurrPr.GetDiffPercBetnNewAndOld(sig.MinRef30Min) < sig.PercBelowDayHighToBuy)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " CrPr " + sig.CurrPr.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < Ref 30  candle mins " + sig.MinRef30Min.Rnd(5).ToString().PadRight(5, ' '));
-
-            //        continue;
-
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-            //    if (sig.PrChPercCurrAndRef1Day < -20M && sig.IsCloseToDayLow)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " PrChPercCurrAndRef1Day " + sig.PrChPercCurrAndRef1Day.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < 20 ");
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-
-            //    if (sig.PrChPercCurrAndRef4Hour < -18M && sig.IsCloseToDayLow)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " PrChPercCurrAndRef4Hour " + sig.PrChPercCurrAndRef4Hour.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < 18 ");
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-
-            //    if (sig.PrChPercCurrAndRef1Hour < -16M && sig.IsCloseToDayLow)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " PrChPercCurrAndRef1Hour " + sig.PrChPercCurrAndRef1Hour.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < 16 ");
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-            //}
-            //if (sig.IsBestTimeToBuyAtDayLowest == false)
-            //{
-
-            //    if (sig.PrChPercCurrAndRef30Min < -14M && sig.IsCloseToDayLow)
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = true;
-            //        logger.Info(sig.Symbol + "  " + StrTradeTime + " PrChPercCurrAndRef30Min " + sig.PrChPercCurrAndRef30Min.Rnd(5).ToString().PadRight(5, ' ')
-            //            + " < 14 ");
-            //        continue;
-            //    }
-            //    else
-            //    {
-            //        sig.IsBestTimeToBuyAtDayLowest = false;
-            //    }
-
-            //}
-
-            //if (sig.CurrPr > sig.DayAveragePr)
-            //{
-            //    sig.IsBestTimeToBuyAtDayLowest = false;
-            //}
-
-            //private int GetTotalConsecutiveUpOrDown(List<SignalCandle> candleList, string direction)
-            //{
-            //    // var mintime = candleList.Min(x => x.CloseTime);
-            //    // var avgPriceOfCandles = candleList.Average(x => x.ClosePrice);
-
-            //    if (candleList == null || candleList.Count == 0) return 0;
-
-            //    int TotalConsecutiveChanges = 0;
-
-            //    candleList = candleList.OrderByDescending(x => x.CloseTime).ToList();
-
-            //    bool directionCondition = false;
-
-            //    for (int i = 0; i < candleList.Count - 1; i++)
-            //    {
-            //        if (direction == "up")
-            //        {
-            //            if (candleList[i].ClosePrice > candleList[i + 1].ClosePrice)
-            //            {
-            //                directionCondition = true;
-            //            }
-            //            else if (i + 2 < candleList.Count)
-            //            {
-
-            //                if (candleList[i].ClosePrice > candleList[i + 2].ClosePrice)
-            //                {
-            //                    directionCondition = true;
-            //                }
-            //                else if (i + 3 < candleList.Count)
-            //                {
-
-            //                    if (candleList[i].ClosePrice > candleList[i + 3].ClosePrice)
-            //                    {
-            //                        directionCondition = true;
-            //                    }
-            //                    else
-            //                    {
-            //                        directionCondition = false;
-            //                    }
-            //                }
-            //                else
-            //                {
-            //                    directionCondition = false;
-            //                }
-            //            }
-            //            else
-            //            {
-            //                directionCondition = false;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            if (candleList[i].ClosePrice <= candleList[i + 1].ClosePrice)
-            //            {
-            //                directionCondition = true;
-            //            }
-            //            else if (i + 2 < candleList.Count)
-            //            {
-
-            //                if (candleList[i].ClosePrice <= candleList[i + 2].ClosePrice)
-            //                {
-            //                    directionCondition = true;
-            //                }
-            //                else if (i + 3 < candleList.Count)
-            //                {
-
-            //                    if (candleList[i].ClosePrice <= candleList[i + 3].ClosePrice)
-            //                    {
-            //                        directionCondition = true;
-            //                    }
-            //                    else
-            //                    {
-            //                        directionCondition = false;
-            //                    }
-            //                }
-            //                else
-            //                {
-            //                    directionCondition = false;
-            //                }
-            //            }
-            //            else
-            //            {
-            //                directionCondition = false;
-            //            }
-            //        }
-
-            //        if (directionCondition)
-            //            TotalConsecutiveChanges++;
-            //        else
-            //            break;
-            //    }
-
-            //    return TotalConsecutiveChanges;
-            //}
-        }
-
-        //private bool IsCoinPriceNotGoingUp(Signal sig)
-        //{
-
-        //    var LastFive_OneMinCandles = sig.Ref1MinCandles.OrderByDescending(x => x.CloseTime).Take(5);
-
-        //    var IsOneMinOnDownTrend = LastFive_OneMinCandles.First().ClosePrice < LastFive_OneMinCandles.Last().ClosePrice;
-
-        //    var LastThree_FiveMinCandles = sig.Ref5MinCandles.OrderByDescending(x => x.CloseTime).Take(3);
-
-        //    var IsFiveMinOnDownTrend = LastThree_FiveMinCandles.First().ClosePrice < LastThree_FiveMinCandles.Last().ClosePrice;
-
-        //    var LastTwo_FifteenMinCandles = sig.Ref15MinCandles.OrderByDescending(x => x.CloseTime).Take(2);
-
-        //    var IsFifteenMinOnDownTrend = LastTwo_FifteenMinCandles.First().ClosePrice < LastTwo_FifteenMinCandles.Last().ClosePrice;
-
-        //    // prices are going down. Dont buy till you see recovery
-        //    if (IsOneMinOnDownTrend|| IsFiveMinOnDownTrend|| IsFifteenMinOnDownTrend)
-        //    {
-        //        logger.Info(sig.OpenTime.ToString("dd-MMM HH:mm") +
-        //          " " + sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') + " CrPr " + sig.CurrPr.Rnd(3).ToString().PadRight(10, ' ') +
-        //          "  Prices not going up. Wait till you see uptrend" +
-        //          " 1up < 2  ? " + sig.TotalConsecutive1MinUps.ToString().PadRight(7, ' ') + " " 
-        //          );
-
-
-        //        return true;
-        //    }
-        //    return false;
-        //}
-
-        private void CreateScalpBuySignals()
-        {
-            //foreach (var sig in MySignals)
-            //{
-            //    try
-            //    {
-
-            //        //if (sig.CurrPr <= 0)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-
-            //        //var OneMinCandles = sig.Ref1MinCandles.OrderByDescending(x => x.CloseTime).Take(5);
-
-            //        //var IsOneMinOnUpTrend = OneMinCandles.First().ClosePrice >= OneMinCandles.Max(x => x.ClosePrice);
-
-            //        //var FiveMinCandles = sig.Ref5MinCandles.OrderByDescending(x => x.CloseTime).Take(4);
-
-            //        //var IsFiveMinOnUpTrend = FiveMinCandles.First().ClosePrice >= FiveMinCandles.Max(x => x.ClosePrice);
-
-            //        //var FifteenMinCandles = sig.Ref15MinCandles.OrderByDescending(x => x.CloseTime).Take(2);
-
-            //        //var IsFifteenMinOnUpTrend = FifteenMinCandles.First().ClosePrice >= FifteenMinCandles.Max(x => x.ClosePrice);
-
-            //        //// prices are going down. Dont buy till you see recovery
-            //        //if (IsOneMinOnUpTrend && IsFiveMinOnUpTrend && IsFifteenMinOnUpTrend)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-
-
-            //        //}
-            //        //if (sig.IsBestTimeToBuyAtDayLowest)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    sig.PrChPercCurrAndRef30Min=-70M; // setting is so low so that this gets preference to buy
-            //        //    sig.PrChPercCurrAndRef4Hour = -70M;
-            //        //    sig.PrChPercCurrAndRef1Hour = -70M;
-            //        //    sig.PrChPercCurrAndRef15Min = -70M;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.Ref4HourCandles == null || sig.Ref4HourCandles.Count < 6)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-            //        //if (sig.Ref1HourCandles == null || sig.Ref1HourCandles.Count < 23)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-            //        //if (sig.Ref30MinCandles == null || sig.Ref30MinCandles.Count < 17)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-            //        //if (sig.Ref15MinCandles == null || sig.Ref15MinCandles.Count < 15)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-            //        //if (sig.Ref5MinCandles == null || sig.Ref5MinCandles.Count < 11)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-
-
-
-            //        //if (sig.PrChPercCurrAndRef4Hour < configr.ScalpFourHourDiffLessThan) //-4M
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-            //        //if (sig.PrChPercCurrAndRef1Hour < configr.ScalpOneHourDiffLessThan)//-4M
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-            //        //if (sig.PrChPercCurrAndRef30Min < configr.ScalpThirtyMinDiffLessThan)//-4M
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-            //        //if (sig.PrChPercCurrAndRef15Min < configr.ScalpFifteenMinDiffLessThan)//-3M
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-            //        //if (sig.PrChPercCurrAndRef5Min < configr.ScalpFiveMinDiffLessThan) //-3M
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.PrDiffCurrAndHighPerc >= -2M)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.PrDiffHighAndLowPerc <= 3M)
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = false;
-            //        //    continue;
-            //        //}
-
-            //        ////if (sig.CurrPr >= ((sig.DayHighPr + sig.DayAveragePr) / configr.DivideHighAndAverageBy))
-            //        ////{
-            //        ////    sig.IsBestTimeToScalpBuy = false;
-            //        ////    continue;
-            //        ////}
-
-            //        //if (sig.TotalConsecutive4HourDowns >= configr.ScalpFourHourDownMoreThan) //3
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.TotalConsecutive1HourDowns >= configr.ScalpOneHourDownMoreThan) //4
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.TotalConsecutive30MinDowns >= configr.ScalpThirtyMinDownMoreThan) //4
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.TotalConsecutive15MinDowns >= configr.ScalpFifteenMinDownMoreThan) //4
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        //if (sig.TotalConsecutive5MinDowns >= configr.ScalpFiveMinDownMoreThan) //5
-            //        //{
-            //        //    sig.IsBestTimeToScalpBuy = true;
-            //        //    continue;
-            //        //}
-
-            //        sig.IsBestTimeToScalpBuy = false;
-            //    }
-            //    catch (Exception ex)
-            //    {
-
-            //        logger.Info("Exception at scalp buy signal generators " + sig.Symbol + " " + ex.Message);
-            //        throw;
-            //    }
-            //}
-        }
+       
 
         #endregion
-
-
 
 
     }
 }
 
-/*
- * 
- * 
- *  private async Task PerformBuys(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
-        {
-            DB TradeDB = new DB();
-
-            var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
-
-            #region buying scan
-
-            var alreadyboughtCoins = tradebots.Where(x => x.Pair != null).Select(x => x.Pair);
-
-            for (int i = 0; i < tradebots.Count(); i++)
-            {
-                if (tradebots[i].IsActivelyTrading) //trading, go to the next one
-                {
-                    continue;
-                }
-                if (tradebots[i].Order == 1)
-                {
-                    // first bot in the group and not actively trading, so no refence amounts to trade with,
-                    //this bot will scan the market condition for a favorable buy.
-                    //In the future, it should actively try to buy when the price of the coin is at its lowest.
-
-                    foreach (var indicator in SignalGeneratorList)
-                    {
-                        if (indicator.IsPicked) continue;
-                        if (alreadyboughtCoins.Contains(indicator.Symbol))
-                        {
-                            continue;
-                        }
-                        var indicatorcurrentprice = indicator.CurrentPrice;
-                        var indicatorSymbol = indicator.Symbol;
-                        var indicatoroldprice = indicator.ReferenceSetAverageCurrentPrice;
-
-                        var pricedifferencepercentage = (indicatorcurrentprice - indicatoroldprice) /
-                        ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
-
-                        if (
-                            pricedifferencepercentage < 0 &&
-                            Math.Abs(pricedifferencepercentage) > tradebots[i].BuyWhenValuePercentageIsBelow
-                            )
-                        {
-                            tradebots[i].IsActivelyTrading = true;
-                            tradebots[i].Pair = indicator.Symbol;
-                            tradebots[i].DayHigh = indicator.DayHighPrice;
-                            tradebots[i].DayLow = indicator.DayLowPrice;
-                            tradebots[i].CreatedDate = DateTime.Now;
-                            tradebots[i].BuyPricePerCoin = indicator.CurrentPrice;
-                            tradebots[i].QuantityBought = tradebots[i].AvailableAmountForTrading / indicator.CurrentPrice;
-                            tradebots[i].BuyingCommision = tradebots[i].AvailableAmountForTrading * 0.075M / 100;
-                            tradebots[i].TotalBuyCost = tradebots[i].AvailableAmountForTrading + tradebots[i].BuyingCommision;
-                            tradebots[i].CurrentPricePerCoin = indicator.CurrentPrice;
-                            tradebots[i].TotalCurrentValue = tradebots[i].AvailableAmountForTrading;
-                            tradebots[i].TotalCurrentProfit = 0;
-                            tradebots[i].BuyTime = DateTime.Now;
-                            tradebots[i].AvailableAmountForTrading = 0;
-                            TradeDB.TradeBot.Update(tradebots[i]);
-
-                            await TradeDB.SaveChangesAsync();
-                            indicator.IsPicked = true;
-                            // Update buy record, set it active, in live system, you will be issuing a buy order
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-                }
-                else
-                {
-                    //not the first bot, so the previous bot will be actively trading. The lower ones are support bots, buy only when the current prices are so much lower than the first bot
-
-                    var previousCoinPrice = tradebots[i - 1].BuyPricePerCoin;
-                    var previousCoinPair = tradebots[i - 1].Pair;
-                    DateTime PreviousCoinBuyTime = Convert.ToDateTime(tradebots[i - 1].BuyTime);
-
-                    foreach (var indicator in SignalGeneratorList)
-                    {
-                        if (indicator.IsPicked) continue;
-                        var indicatorcurrentprice = indicator.CurrentPrice;
-                        var indicatorSymbol = indicator.Symbol;
-
-                        var closestcandles = await TradeDB.Candle.Where(
-                            x => x.Symbol == indicator.Symbol &&
-                            x.RecordedTime.Date == PreviousCoinBuyTime.Date &&
-                            x.RecordedTime.Hour == PreviousCoinBuyTime.Hour
-                            ).ToListAsync();
-
-                        long min = long.MaxValue;
-
-                        Candle selectedCandle = new Candle();
-
-                        foreach (var candidatecandle in closestcandles)
-                        {
-                            if (Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks) < min)
-                            {
-                                min = Math.Abs(PreviousCoinBuyTime.Ticks - candidatecandle.RecordedTime.Ticks);
-                                selectedCandle = candidatecandle;
-                            }
-                        }
-                        var indicatoroldprice = selectedCandle.CurrentPrice; //[TO DO] - Relook at this line
-
-                        var pricedifference = (indicatorcurrentprice - indicatoroldprice) / ((indicatorcurrentprice + indicatoroldprice / 2)) * 100;
-
-                        if (pricedifference < 0 && Math.Abs(pricedifference) > tradebots[i].BuyWhenValuePercentageIsBelow)
-                        {
-                            //buy
-                            tradebots[i].IsActivelyTrading = true;
-                            tradebots[i].Pair = indicator.Symbol;
-                            tradebots[i].DayHigh = indicator.DayHighPrice;
-                            tradebots[i].DayLow = indicator.DayLowPrice;
-                            tradebots[i].CreatedDate = DateTime.Now;
-                            tradebots[i].BuyPricePerCoin = indicator.CurrentPrice;
-                            tradebots[i].QuantityBought = tradebots[i].AvailableAmountForTrading / indicator.CurrentPrice;
-                            tradebots[i].BuyingCommision = tradebots[i].AvailableAmountForTrading * 0.075M / 100;
-                            tradebots[i].TotalBuyCost = tradebots[i].AvailableAmountForTrading + tradebots[i].BuyingCommision;
-
-                            tradebots[i].CurrentPricePerCoin = indicator.CurrentPrice;
-                            tradebots[i].TotalCurrentValue = tradebots[i].AvailableAmountForTrading;
-                            tradebots[i].TotalCurrentProfit = 0;
-                            tradebots[i].BuyTime = DateTime.Now;
-                            tradebots[i].AvailableAmountForTrading = 0;
-                            indicator.IsPicked = true;
-                            // Update buy record, set it active, in live system, you will be issuing a buy order
-                            // Update buy record, set it active, in live system, you will be issuing a buy order
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-                }
-
-            }
-
-            #endregion buying scan
-        }
-
-        private async Task PerformSells(IOrderedEnumerable<SignalIndicator> SignalGeneratorList)
-        {
-            DB TradeDB = new DB();
-
-            #region selling scan
-            var tradebots = await TradeDB.TradeBot.OrderBy(x => x.Id).ToListAsync();
-
-            var botgroups = tradebots.OrderByDescending(x => x.Order).GroupBy(x => x.Name).ToList();
-
-            // see when a bot batch made more than 5 % profit. Later you can change these to be configurable.
-            foreach (var botgroup in botgroups)
-            {
-                decimal? totalbuyingprice = 0;
-                decimal? totalcurrentprice = 0;
-
-                foreach (var bot in botgroup)
-                {
-                    if (!bot.IsActivelyTrading) // not in trading, so cannot sell
-                    {
-                        continue;
-                    }
-
-                    // collect buying price of each coin in the group and collect quantity bought
-                    // collect current price
-                    // if the total current price gives you more than 4% profit sell it.
-
-                    decimal? BuyingCoinPrice = bot.BuyPricePerCoin;
-                    var CoinPair = bot.Pair;
-                    decimal quanitybought = Convert.ToDecimal(bot.QuantityBought);
-                    decimal? buyingcommision = bot.BuyingCommision;
-
-                    totalbuyingprice += (BuyingCoinPrice * quanitybought + buyingcommision);
-
-                    foreach (var indicator in SignalGeneratorList)
-                    {
-                        if (indicator.Symbol == CoinPair)
-                        {
-                            var currentPrice = indicator.CurrentPrice;
-                            totalcurrentprice += (indicator.CurrentPrice * quanitybought) + ((indicator.CurrentPrice * quanitybought) * 0.075M / 100);
-                            break;
-                        }
-                    }
-                }
-
-                if (totalbuyingprice == 0) // no trades happening in the group, go the next bot group.
-                {
-                    continue;
-                }
-
-                var pricedifference = (totalcurrentprice - totalbuyingprice) / ((totalcurrentprice + totalbuyingprice) / 2) * 100;
-
-                //Your total profit is more than 5%. Sell it and get ready to buy again.
-                if (pricedifference > 5)
-                {
-                    foreach (var bot in botgroup)
-                    {
-                        var CoinPair = bot.Pair;
-                        var CoinIndicator = SignalGeneratorList.Where(x => x.Symbol == CoinPair).FirstOrDefault();
-                        bot.DayHigh = CoinIndicator.DayHighPrice;
-                        bot.DayLow = CoinIndicator.DayLowPrice;
-                        bot.CurrentPricePerCoin = CoinIndicator.CurrentPrice;
-                        bot.TotalCurrentValue = bot.CurrentPricePerCoin * bot.QuantityBought;
-                        bot.QuantitySold = Convert.ToDecimal(bot.QuantityBought);
-                        bot.SoldCommision = bot.CurrentPricePerCoin * bot.QuantityBought * 0.075M / 100;
-                        bot.TotalSoldAmount = bot.TotalCurrentValue - bot.SoldCommision;
-                        bot.AvailableAmountForTrading = bot.TotalSoldAmount;
-                        bot.TotalCurrentProfit = bot.TotalSoldAmount - bot.TotalBuyCost;
-                        bot.SellTime = DateTime.Now;
-                        bot.UpdatedTime = DateTime.Now;
-
-                        // create sell order (in live system)
-                        // copy the record to history
-
-                        TradeBotHistory tradeBotHistory = iMapper.Map<TradeBot, TradeBotHistory>(bot);
-
-                        await TradeDB.TradeBotHistory.AddAsync(tradeBotHistory);
-
-
-                        // reset records to buy again
-
-                        bot.DayHigh = 0.0M;
-                        bot.DayLow = 0.0M;
-                        bot.Pair = string.Empty;
-                        bot.BuyPricePerCoin = 0.0M;
-                        bot.CurrentPricePerCoin = 0.0M;
-                        bot.QuantityBought = 0.0M;
-                        bot.TotalBuyCost = 0.0M;
-                        bot.TotalCurrentValue = 0.0M;
-                        bot.TotalSoldAmount = 0.0M;
-                        bot.BuyTime = null;
-                        bot.CreatedDate = null;
-                        bot.SellTime = null;
-                        bot.BuyingCommision = 0.0M;
-                        bot.SoldPricePricePerCoin = 0.0M;
-                        bot.TotalCurrentProfit = 0.0M;
-                        bot.QuantitySold = 0.0M;
-                        bot.SoldCommision = 0.0M;
-                        bot.TotalCurrentProfit = 0.0M;
-                        bot.IsActivelyTrading = false;
-
-                        TradeDB.TradeBot.Update(bot);
-                        await TradeDB.SaveChangesAsync();
-
-
-                        // update record fully.
-
-                        // In the future write code to wait and see if the prices keep going up before selling abruptly.
-                        //Only when you have made sufficiently sure that prices will not go higher, then sell them.
-                    }
-
-                }
-
-            }
-
-
-
-            #endregion selling scan
-        }
-
- //Old Code
-
-  private async Task<bool> IsReadyForSell(Player player)
-        {
-            DB db = new DB();
-            ForceSell = false;
-            var newPlayer = db.Player.AsNoTracking().Where(x => x.Name == player.Name).FirstOrDefault();
-
-            if (newPlayer.IsTrading == false)
-            {
-                return false;
-            }
-
-            Signal sig = CurrentSignals.Where(x => x.Symbol == player.Pair).FirstOrDefault();
-
-            decimal mysellPrice = 0;
-            var pair = player.Pair;
-
-            if (player == null)
-            {
-                logger.Info("Sellable: Player returned as null. Some issue. Returning from Sell");
-                return false;
-            }
-            if (pair == null)
-            {
-                logger.Info("Sellable: Player's Pair to sell returned as null. Some issue. Returning from Sell");
-                return false;
-            }
-
-            mysellPrice = sig.CurrPr;
-            player.DayHigh = sig.DayHighPr;
-            player.DayLow = sig.DayLowPr;
-            player.UpdatedTime = DateTime.Now;
-            player.SellCoinPrice = mysellPrice;
-            decimal availableQty = player.Quantity.Deci();
-
-            if (availableQty <= 0)
-            {
-                logger.Info("  " + StrTradeTime + " " + player.Name + " " + pair.Replace("USDT", "").PadRight(7, ' ') +
-                  " Available Quantity 0 for " + " Symbol " + player.Pair + " Sell not possible ");
-                return false;
-            }
-            if (player.Quantity == null || player.Quantity.Deci() == 0)
-            {
-                logger.Info("  " + StrTradeTime + " " + player.Name + " " + pair.Replace("USDT", "").PadRight(7, ' ') +
-               " player.Quantity  0 for " + " Symbol " + player.Pair + " Sell not possible ");
-                return false;
-            }
-
-            player.SellCommision = mysellPrice * player.Quantity * configr.CommisionAmount / 100;
-            player.TotalSellAmount = mysellPrice * player.Quantity + player.SellCommision;
-            player.ProfitLossAmt = (player.TotalSellAmount - player.TotalBuyCost).Deci();
-            player.CurrentCoinPrice = mysellPrice;
-            player.TotalCurrentValue = player.TotalSellAmount;
-            player.SellOrderId = 0;
-            var prDiffPerc = player.TotalSellAmount.GetDiffPerc(player.TotalBuyCost);
-
-
-            if (prDiffPerc <= player.SellAbovePerc)
-            {
-                player.ProfitLossChanges += prDiffPerc.Deci().Rnd(2) + " , ";
-                player.SellBelowPerc = player.SellAbovePerc;
-                db.Player.Update(player);
-                await db.SaveChangesAsync();
-                return false;
-            }
-            if (prDiffPerc > player.SellAbovePerc && PricesGoingUp(sig, player))
-            {
-                if (player.SellBelowPerc < prDiffPerc * 90 / 100)
-                    player.SellBelowPerc = prDiffPerc * 90 / 100;
-                player.ProfitLossChanges += prDiffPerc.Deci().Rnd(2) + " , ";
-                player.LastRoundProfitPerc = prDiffPerc;
-                player.AvailableAmountToBuy = 0;
-                db.Player.Update(player);
-                await db.SaveChangesAsync();
-                return false;
-            }
-            else if (prDiffPerc > player.SellAbovePerc && prDiffPerc > player.SellBelowPerc)
-            {
-                player.SellBelowPerc = prDiffPerc * 90 / 100;
-                player.ProfitLossChanges += prDiffPerc.Deci().Rnd(2) + " , ";
-                player.LastRoundProfitPerc = prDiffPerc;
-                player.AvailableAmountToBuy = 0;
-                db.Player.Update(player);
-            }
-            else if (prDiffPerc > player.SellAbovePerc)
-            {
-                player.LastRoundProfitPerc = prDiffPerc;
-                player.AvailableAmountToBuy = 0;
-                db.Player.Update(player);
-            }
-
-            await db.SaveChangesAsync();
-            return true;
-        }
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//string log = sig.Symbol.Replace("USDT", "").ToString().PadRight(7, ' ') +
-//                         " CurPr " + sig.CurrPr.Rnd().ToString().PadRight(11, ' ') +
-//                         " DHi " + sig.DayHighPr.Rnd(6).ToString().PadRight(11, ' ') +
-//                         " DLo " + sig.DayLowPr.Rnd(6).ToString().PadRight(11, ' ') +
-//                          " DiCr&Hi " + sig.PrDiffCurrAndHighPerc.Rnd(6).ToString().PadRight(11, ' ') +
-//                         " Cr&Lw " + sig.PrDiffCurrAndLowPerc.Rnd(6).ToString().PadRight(11, ' ') +
-//                         " Trds " + sig.DayTradeCount.Rnd(6).ToString().PadRight(11, ' ') +
-//                         " Vols " + sig.DayVol.Rnd(2).ToString().PadRight(20, ' ');
-//log += " is At Day High. Best time to Sell";
-//logger.Info(log);
-
-
+//private async void ForceBuySellTimer_Tick(object sender, EventArgs e)
+//{
+
+//    if (isControlCurrentlyInTradeMethod) return;
+
+//    try
+//    {
+//        isControlCurrentlyInTradeMethod = true;
+
+//        await GetMyCoins();
+
+//        if (myCoins.Any(x => x.ForceBuy == true))
+//        {
+//            logger.Info("coins with forcebuy set to true exist. Buying...");
+//            await Buy();
+//        }
+//        else
+//        {
+//            logger.Info("No coins with forcebuy set to true");
+//        }
+
+//        using (var db = new DB())
+//        {
+//            var players = await db.Player.AsNoTracking().Where(x => x.ForceSell == true).ToListAsync();
+//            if (players.Any())
+//            {
+//                logger.Info("coins with forcesell set to true exist. Selling...");
+//                foreach (var player in players)
+//                {
+//                    await Sell(player);
+//                }
+//            }
+//            else
+//            {
+//                logger.Info("No players with forcesell set to true");
+//            }
+//        }
+//    }
+//    catch (Exception ex)
+//    {
+
+//        logger.Error("Exception at force buy and sell " + ex.Message);
+//    }
+//    finally
+//    {
+//        isControlCurrentlyInTradeMethod = false;
+//    }
+
+//}
