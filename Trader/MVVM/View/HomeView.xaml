@@ -32,8 +32,8 @@
         <Button x:Name="btnTrade" Content="Trade" HorizontalAlignment="Right"  Visibility="Visible" VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
            Grid.Row="0" Grid.Column="4" Click="btnTrade_Click"  Style="{StaticResource ButtonTheme}" />
 
-        <Button x:Name="btnCollect" Content="Collect" HorizontalAlignment="Right"  Visibility="Visible" VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
-           Grid.Row="0" Grid.Column="0" Click="btnCollect_Click"  Style="{StaticResource ButtonTheme}" />
+        <!--<Button x:Name="btnCollect" Content="Collect" HorizontalAlignment="Right"  Visibility="Visible" VerticalAlignment="Top" FontFamily="/Fonts/#Poppins"
+           Grid.Row="0" Grid.Column="0" Click="btnCollect_Click"  Style="{StaticResource ButtonTheme}" />-->
 
         <DataGrid x:Name="PlayerGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeaderWidth="1" 
                   Grid.Row="1" Grid.ColumnSpan="6" ColumnWidth="*" Margin="10" IsSynchronizedWithCurrentItem="True" Background="#272537" BorderThickness="0" Style="{StaticResource DataGridTheme}" Visibility="Hidden">

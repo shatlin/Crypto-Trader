@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trader.Models;
 
 namespace Trader2.Migrations
 {
     [DbContext(typeof(DB))]
-    partial class DBModelSnapshot : ModelSnapshot
+    [Migration("20211023180123_m51")]
+    partial class m51
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -195,9 +197,6 @@ namespace Trader2.Migrations
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
 
-                    b.Property<decimal?>("BuyAtPrice")
-                        .HasColumnType("decimal(30,12)");
-
                     b.Property<decimal?>("BuyBelowPerc")
                         .IsRequired()
                         .HasColumnType("decimal(30,12)");
@@ -269,9 +268,6 @@ namespace Trader2.Migrations
 
                     b.Property<decimal?>("SellAbovePerc")
                         .IsRequired()
-                        .HasColumnType("decimal(30,12)");
-
-                    b.Property<decimal?>("SellAtPrice")
                         .HasColumnType("decimal(30,12)");
 
                     b.Property<decimal?>("SellBelowPerc")

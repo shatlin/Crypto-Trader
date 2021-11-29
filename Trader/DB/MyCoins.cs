@@ -30,7 +30,7 @@ namespace Trader.Models
         public decimal DayHighPrice { get; set; }
         public decimal DayLowPrice { get; set; }
         public decimal CurrentPrice { get; set; }
-
+        public decimal DayPriceDiff { get; set; }
         public decimal FiveMinChange { get; set; }
         public decimal TenMinChange { get; set; }
         public decimal FifteenMinChange { get; set; }
@@ -74,6 +74,7 @@ namespace Trader.Models
             builder.Property(e => e.OneWeekChange).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.PrecisionDecimals).IsRequired().HasColumnType("decimal(30, 12)");
             builder.Property(e => e.MarketCap).IsRequired().HasColumnType("decimal(30, 12)");
+            builder.Property(e => e.DayPriceDiff).IsRequired().HasColumnType("decimal(30, 12)");
         }
 
     }
