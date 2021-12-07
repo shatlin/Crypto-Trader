@@ -16,6 +16,8 @@ namespace BinanceExchange.API.Models.Response
         public bool isSellAllowed { get; set; }
         public bool ForceSell { get; set; }
 
+        public bool IsTracked { get; set; }
+
         public decimal? DayHigh { get; set; }
         public decimal? DayLow { get; set; }
 

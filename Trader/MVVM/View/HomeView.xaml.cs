@@ -1707,7 +1707,7 @@ namespace Trader.MVVM.View
                 player.isSellAllowed = false;
                 player.SellAtPrice = null;
                 player.BuyAtPrice = null;
-
+                player.IsTracked=true;
                 player.SellCommision = player.BuyCommision;
                 player.SellCoinPrice = mybuyPrice;
                 player.ProfitLossAmt = (player.TotalCurrentValue - player.TotalBuyCost).Deci();
@@ -2472,7 +2472,7 @@ namespace Trader.MVVM.View
             player.isSellAllowed = false;
             player.SellAtPrice = null;
             player.BuyAtPrice = null;
-
+            player.IsTracked=true;
             db.Player.Update(player);
             await db.SaveChangesAsync();
 
