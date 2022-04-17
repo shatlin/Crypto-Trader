@@ -9,12 +9,14 @@
         mc:Ignorable="d"
         Height="1080" Width="1920" 
         Background="Transparent" ShowInTaskbar="true"
-        Title="Pro Trader Prod"  WindowStartupLocation="CenterScreen"  WindowState="Maximized">
+        Title="Trader"  WindowStartupLocation="CenterScreen"  WindowState="Maximized">
 
     <Window.DataContext>
         <viewModel:MainViewModel />
     </Window.DataContext>
-
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo/>
+    </Window.TaskbarItemInfo>
     <Border Background="#272537" CornerRadius="10">
         
     <Grid>
@@ -27,14 +29,14 @@
                 <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="Pro"
+            <TextBlock Text="Tra"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Left"
                        Foreground="#ff4265"
                        FontSize="22"
                        Margin="10,0,0,0" FontFamily="/Fonts/#Poppins"
                        ></TextBlock>
-            <TextBlock Text="Trader Prod"
+            <TextBlock Text="der"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Left"
                        Foreground="#2ed191"
